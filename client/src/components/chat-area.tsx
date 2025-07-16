@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Play, MoreVertical, Bot, User, Plus } from "lucide-react";
+import { Send, Play, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { messagesApi, chatApi, conversationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { MessageWithSender, Personality } from "@shared/schema";
@@ -180,8 +181,8 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
           <div className="text-center text-gray-500 space-y-6">
             <Bot className="h-16 w-16 mx-auto mb-4 text-gray-300" />
             <div>
-              <h3 className="text-lg font-medium mb-2 text-dark-primary">Seleziona una conversazione</h3>
-              <p className="text-sm">Scegli una conversazione dalla lista o creane una nuova per iniziare a chattare con le AI</p>
+              <h3 className="text-lg font-medium mb-2 text-visible">Seleziona una conversazione</h3>
+              <p className="text-sm text-visible">Scegli una conversazione dalla lista o creane una nuova per iniziare a chattare con le AI</p>
             </div>
             <div className="pt-4">
               <Button 
@@ -223,7 +224,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 ))}
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-dark-primary">{conversation?.title}</h3>
+                <h3 className="text-lg font-semibold text-visible">{conversation?.title}</h3>
                 <p className="text-sm text-gray-500">
                   {conversation?.participants.map(p => p.displayName).join(" • ")}
                 </p>
@@ -235,14 +236,45 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 size="sm" 
                 onClick={handleAutoContinue}
                 disabled={autoContinueActive}
-                className="bg-connection hover:bg-green-700"
+                className="button-visible"
               >
                 <Play className="h-4 w-4 mr-1" />
                 {autoContinueActive ? "In corso..." : "Auto-Continue"}
               </Button>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="button-visible">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => {
+                    const conversationText = `${conversation?.title}\n\n${messages.map(m => 
+                      `${m.senderId === 'user' ? 'Tu' : getPersonalityName(m.senderId!)}: ${m.content}`
+                    ).join('\n\n')}`;
+                    navigator.clipboard.writeText(conversationText);
+                    toast({ title: "Conversazione copiata!", description: "Il testo è stato copiato negli appunti" });
+                  }}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Esporta conversazione
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    toast({ title: "Modifica", description: "Funzionalità in arrivo!" });
+                  }}>
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Modifica conversazione
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      toast({ title: "Elimina", description: "Conferma eliminazione - funzione in arrivo!" });
+                    }}
+                    className="text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Elimina conversazione
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -348,7 +380,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                   variant="ghost"
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 button-visible"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -357,7 +389,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
             <Button 
               onClick={() => handleAIResponse()}
               disabled={isTyping}
-              className="bg-connection hover:bg-green-700"
+              className="button-visible"
             >
               <Bot className="h-4 w-4 mr-2" />
               Chiedi all'AI
@@ -373,7 +405,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 size="sm"
                 onClick={() => handleAIResponse(personality.nameId)}
                 disabled={isTyping}
-                className={`text-xs ${
+                className={`text-xs button-visible ${
                   personality.nameId === "geppo" 
                     ? "border-geppo/20 bg-geppo/10 text-geppo hover:bg-geppo/20"
                     : "border-c24/20 bg-c24/10 text-c24 hover:bg-c24/20"
