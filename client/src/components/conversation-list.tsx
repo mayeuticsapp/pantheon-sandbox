@@ -101,9 +101,13 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
             <h2 className="text-lg font-semibold text-dark-primary">Conversazioni Attive</h2>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-geppo hover:bg-blue-700">
+                <Button 
+                  size="sm" 
+                  className="bg-geppo hover:bg-blue-700 text-white font-medium shadow-md"
+                  data-testid="create-conversation-button"
+                >
                   <Plus className="h-4 w-4 mr-1" />
-                  Nuova
+                  Nuova Conversazione
                 </Button>
               </DialogTrigger>
               <DialogContent>

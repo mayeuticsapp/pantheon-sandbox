@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Play, MoreVertical, Bot, User } from "lucide-react";
+import { Send, Play, MoreVertical, Bot, User, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -177,10 +177,28 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     return (
       <Card className="h-[calc(100vh-180px)]">
         <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center text-gray-500">
+          <div className="text-center text-gray-500 space-y-6">
             <Bot className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium mb-2">Seleziona una conversazione</h3>
-            <p className="text-sm">Scegli una conversazione dalla lista o creane una nuova per iniziare a chattare con le AI</p>
+            <div>
+              <h3 className="text-lg font-medium mb-2 text-dark-primary">Seleziona una conversazione</h3>
+              <p className="text-sm">Scegli una conversazione dalla lista o creane una nuova per iniziare a chattare con le AI</p>
+            </div>
+            <div className="pt-4">
+              <Button 
+                onClick={() => {
+                  // Trigger create conversation modal from conversation list
+                  const createButton = document.querySelector('[data-testid="create-conversation-button"]') as HTMLButtonElement;
+                  if (createButton) {
+                    createButton.click();
+                  }
+                }}
+                className="bg-geppo hover:bg-blue-700 text-white font-medium shadow-md"
+                size="lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Crea Nuova Conversazione
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

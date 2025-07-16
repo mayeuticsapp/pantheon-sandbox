@@ -77,12 +77,15 @@ export default function ChatPlatform() {
               </div>
             </div>
             
-            <nav className="hidden md:flex space-x-1">
+            <nav className="flex space-x-1">
               <button
-                onClick={() => setActiveTab("conversations")}
+                onClick={() => {
+                  setActiveTab("conversations");
+                  setSelectedConversationId(null);
+                }}
                 className={`px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-colors ${
                   activeTab === "conversations"
-                    ? "bg-geppo text-white"
+                    ? "bg-geppo text-white shadow-md"
                     : "text-gray-600 hover:text-dark-primary hover:bg-gray-100"
                 }`}
               >
@@ -95,10 +98,13 @@ export default function ChatPlatform() {
                 </span>
               </button>
               <button
-                onClick={() => setActiveTab("personalities")}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                onClick={() => {
+                  setActiveTab("personalities");
+                  setSelectedConversationId(null);
+                }}
+                className={`px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-colors ${
                   activeTab === "personalities"
-                    ? "bg-geppo text-white"
+                    ? "bg-geppo text-white shadow-md"
                     : "text-gray-600 hover:text-dark-primary hover:bg-gray-100"
                 }`}
               >
@@ -111,10 +117,13 @@ export default function ChatPlatform() {
                 </span>
               </button>
               <button
-                onClick={() => setActiveTab("providers")}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                onClick={() => {
+                  setActiveTab("providers");
+                  setSelectedConversationId(null);
+                }}
+                className={`px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-colors ${
                   activeTab === "providers"
-                    ? "bg-geppo text-white"
+                    ? "bg-geppo text-white shadow-md"
                     : "text-gray-600 hover:text-dark-primary hover:bg-gray-100"
                 }`}
               >
