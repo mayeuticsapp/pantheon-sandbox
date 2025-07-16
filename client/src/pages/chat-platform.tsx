@@ -39,6 +39,7 @@ export default function ChatPlatform() {
                 conversations={conversations}
                 selectedId={selectedConversationId}
                 onSelect={setSelectedConversationId}
+                personalities={personalities}
               />
             </div>
             <div className="lg:col-span-2">

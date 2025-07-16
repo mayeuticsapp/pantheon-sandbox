@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { conversationsApi, personalitiesApi } from "@/lib/api";
+import { conversationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { ConversationWithParticipants, Personality } from "@shared/schema";
 
@@ -14,18 +14,16 @@ interface ConversationListProps {
   conversations: ConversationWithParticipants[];
   selectedId: number | null;
   onSelect: (id: number) => void;
+  personalities: Personality[];
 }
 
-export default function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
+export default function ConversationList({ conversations, selectedId, onSelect, personalities }: ConversationListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newConvTitle, setNewConvTitle] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Get personalities for selection
-  const { data: personalities = [] } = useQueryClient().getQueryData<Personality[]>(["/api/personalities"]) || { data: [] };
 
   const createMutation = useMutation({
     mutationFn: conversationsApi.create,
@@ -124,18 +122,22 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                   <div>
                     <label className="text-sm font-medium mb-2 block">Partecipanti AI</label>
                     <div className="space-y-2">
-                      {personalities.map((personality) => (
-                        <div key={personality.nameId} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={personality.nameId}
-                            checked={selectedParticipants.includes(personality.nameId)}
-                            onCheckedChange={() => toggleParticipant(personality.nameId)}
-                          />
-                          <label htmlFor={personality.nameId} className="text-sm font-medium cursor-pointer">
-                            {personality.displayName}
-                          </label>
-                        </div>
-                      ))}
+                      {personalities && personalities.length > 0 ? (
+                        personalities.map((personality) => (
+                          <div key={personality.nameId} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={personality.nameId}
+                              checked={selectedParticipants.includes(personality.nameId)}
+                              onCheckedChange={() => toggleParticipant(personality.nameId)}
+                            />
+                            <label htmlFor={personality.nameId} className="text-sm font-medium cursor-pointer">
+                              {personality.displayName}
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">Caricamento personalità...</p>
+                      )}
                     </div>
                   </div>
                   <Button 
