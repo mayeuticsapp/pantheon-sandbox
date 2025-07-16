@@ -214,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Chat endpoint - Integrazione C24 per ChatGPT
   app.post("/api/chat", async (req, res) => {
     try {
-      const { personalityId, message, conversationHistory = [] } = req.body;
+      const { personalityId, message, conversationHistory = [], conversationId } = req.body;
       
       console.log(`🎭 Richiesta chat per ${personalityId}: "${message.substring(0, 50)}..."`);
       
@@ -223,8 +223,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Personality not found" });
       }
 
+      // Ottieni le istruzioni della conversazione se disponibili
+      let instructions: string | undefined;
+      if (conversationId) {
+        const conversation = await storage.getConversation(conversationId);
+        instructions = conversation?.instructions || undefined;
+      }
+
       // Genera la risposta AI usando il nuovo servizio
-      const aiResponse = await generateAIResponse(personality, conversationHistory, message);
+      const aiResponse = await generateAIResponse(personality, conversationHistory, message, instructions);
 
       res.json({
         response: aiResponse,

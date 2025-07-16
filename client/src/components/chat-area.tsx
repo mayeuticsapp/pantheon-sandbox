@@ -129,6 +129,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
       await aiResponseMutation.mutateAsync({
         personalityId: targetPersonality,
         message: messages.length > 0 ? messages[messages.length - 1].content : "Inizia la conversazione",
+        conversationId: conversationId,
         conversationHistory: messages,
       });
     } catch (error) {
@@ -238,6 +239,11 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 <p className="text-sm text-gray-500">
                   {conversation?.participants.map(p => p.displayName).join(" • ")}
                 </p>
+                {conversation?.instructions && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    📋 Istruzioni: {conversation.instructions.slice(0, 60)}...
+                  </p>
+                )}
               </div>
             </div>
             
@@ -276,7 +282,15 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => {
-                      toast({ title: "Elimina", description: "Conferma eliminazione - funzione in arrivo!" });
+                      if (window.confirm("Sei sicuro di voler eliminare questa conversazione? Questa azione non può essere annullata.")) {
+                        conversationsApi.delete(conversation!.id).then(() => {
+                          queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+                          window.location.href = "/";
+                          toast({ title: "Conversazione eliminata", description: "La conversazione è stata eliminata con successo" });
+                        }).catch(() => {
+                          toast({ title: "Errore", description: "Impossibile eliminare la conversazione", variant: "destructive" });
+                        });
+                      }
                     }}
                     className="text-red-600 hover:bg-red-50"
                   >

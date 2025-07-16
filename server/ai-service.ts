@@ -8,7 +8,8 @@ const DEFAULT_MODEL = "gpt-4o";
 export async function generateAIResponse(
   personality: Personality,
   conversationHistory: Message[],
-  newMessage: string
+  newMessage: string,
+  instructions?: string
 ): Promise<string> {
   try {
     // Ottieni TUTTI i provider e trova quello attivo
@@ -28,10 +29,15 @@ export async function generateAIResponse(
     });
 
     // Costruisci la cronologia della conversazione per il context
+    let systemPrompt = personality.systemPrompt;
+    if (instructions) {
+      systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
+    }
+    
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       {
         role: "system",
-        content: personality.systemPrompt
+        content: systemPrompt
       }
     ];
 

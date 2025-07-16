@@ -131,6 +131,9 @@ export class MemStorage implements IStorage {
       ...provider,
       id: this.currentProviderId++,
       createdAt: new Date(),
+      baseUrl: provider.baseUrl || null,
+      defaultModel: provider.defaultModel || null,
+      isActive: provider.isActive || null,
     };
     this.providers.set(newProvider.id, newProvider);
     return newProvider;
@@ -167,6 +170,10 @@ export class MemStorage implements IStorage {
       ...personality,
       id: this.currentPersonalityId++,
       createdAt: new Date(),
+      isActive: personality.isActive || null,
+      description: personality.description || null,
+      providerId: personality.providerId || null,
+      color: personality.color || null,
     };
     this.personalities.set(newPersonality.id, newPersonality);
     return newPersonality;
@@ -241,6 +248,11 @@ export class MemStorage implements IStorage {
       id: this.currentConversationId++,
       createdAt: new Date(),
       updatedAt: new Date(),
+      isActive: conversation.isActive || null,
+      instructions: conversation.instructions || null,
+      participantIds: conversation.participantIds || null,
+      autoContinue: conversation.autoContinue || null,
+      autoContinueRounds: conversation.autoContinueRounds || null,
     };
     this.conversations.set(newConversation.id, newConversation);
     return newConversation;
@@ -282,6 +294,9 @@ export class MemStorage implements IStorage {
       ...message,
       id: this.currentMessageId++,
       createdAt: new Date(),
+      senderId: message.senderId || null,
+      messageType: message.messageType || null,
+      metadata: message.metadata || null,
     };
     this.messages.set(newMessage.id, newMessage);
 

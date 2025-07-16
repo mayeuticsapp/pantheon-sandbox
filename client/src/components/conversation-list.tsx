@@ -4,6 +4,7 @@ import { Plus, Users, MessageSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { conversationsApi } from "@/lib/api";
@@ -20,6 +21,7 @@ interface ConversationListProps {
 export default function ConversationList({ conversations, selectedId, onSelect, personalities }: ConversationListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newConvTitle, setNewConvTitle] = useState("");
+  const [newConvInstructions, setNewConvInstructions] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   
   const { toast } = useToast();
@@ -31,6 +33,7 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       setIsCreateOpen(false);
       setNewConvTitle("");
+      setNewConvInstructions("");
       setSelectedParticipants([]);
       onSelect(newConversation.id);
       toast({
@@ -59,6 +62,7 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
 
     createMutation.mutate({
       title: newConvTitle,
+      instructions: newConvInstructions,
       participantIds: selectedParticipants,
       isActive: true,
       autoContinue: false,
@@ -122,6 +126,19 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
                       onChange={(e) => setNewConvTitle(e.target.value)}
                       placeholder="es. Discussione Architettura AI"
                     />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Istruzioni per le AI</label>
+                    <Textarea
+                      value={newConvInstructions}
+                      onChange={(e) => setNewConvInstructions(e.target.value)}
+                      placeholder="Scrivi istruzioni specifiche per guidare il comportamento delle AI in questa conversazione..."
+                      rows={3}
+                      className="resize-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Le AI leggeranno queste istruzioni e le seguiranno durante la conversazione
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">Partecipanti AI</label>

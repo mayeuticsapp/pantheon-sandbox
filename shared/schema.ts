@@ -34,6 +34,7 @@ export const personalities = pgTable("personalities", {
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  instructions: text("instructions").default(""),
   participantIds: text("participant_ids").array(), // Array of personality nameIds
   isActive: boolean("is_active").default(true),
   autoContinue: boolean("auto_continue").default(false),
