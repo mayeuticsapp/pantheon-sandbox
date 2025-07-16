@@ -12,20 +12,29 @@ export async function generateAIResponse(
   instructions?: string
 ): Promise<string> {
   try {
-    // Ottieni TUTTI i provider e trova quello attivo
-    const providers = await storage.getProviders();
-    const activeProvider = providers.find(p => p.isActive && p.type === "openai");
+    // Ottieni il provider specifico per la personalità o fallback al provider di default
+    let targetProvider;
     
-    if (!activeProvider) {
-      throw new Error(`Nessun provider OpenAI attivo disponibile per ${personality.displayName}`);
+    if (personality.providerId) {
+      targetProvider = await storage.getProvider(personality.providerId);
+      console.log(`🎯 Provider specifico per ${personality.displayName}: ${targetProvider?.name} (ID: ${targetProvider?.id})`);
     }
     
-    console.log(`🔄 Usando provider attivo: ${activeProvider.name} (ID: ${activeProvider.id}) per ${personality.displayName}`);
+    // Fallback: trova un provider attivo dello stesso tipo
+    if (!targetProvider || !targetProvider.isActive) {
+      const providers = await storage.getProviders();
+      targetProvider = providers.find(p => p.isActive && p.type === "openai");
+      console.log(`🔄 Fallback provider per ${personality.displayName}: ${targetProvider?.name} (ID: ${targetProvider?.id})`);
+    }
+    
+    if (!targetProvider) {
+      throw new Error(`Nessun provider attivo disponibile per ${personality.displayName}`);
+    }
 
-    // Inizializza OpenAI con la chiave API dal provider attivo
+    // Inizializza OpenAI con la chiave API dal provider
     const openai = new OpenAI({
-      apiKey: activeProvider.apiKey,
-      baseURL: activeProvider.baseUrl || undefined,
+      apiKey: targetProvider.apiKey,
+      baseURL: targetProvider.baseUrl || undefined,
     });
 
     // Costruisci la cronologia della conversazione per il context
@@ -72,7 +81,7 @@ export async function generateAIResponse(
     console.log(`🤖 Generando risposta per ${personality.displayName}...`);
 
     const response = await openai.chat.completions.create({
-      model: activeProvider.defaultModel || DEFAULT_MODEL,
+      model: targetProvider.defaultModel || DEFAULT_MODEL,
       messages,
       temperature: 0.7,
       max_tokens: 1000,
