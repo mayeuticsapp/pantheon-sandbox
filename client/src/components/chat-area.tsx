@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Play, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download } from "lucide-react";
+import { Send, Play, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { messagesApi, chatApi, conversationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +21,8 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [autoContinueActive, setAutoContinueActive] = useState(false);
+  const [autoContinueRounds, setAutoContinueRounds] = useState(3);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -135,7 +140,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     if (!conversation || autoContinueActive) return;
 
     setAutoContinueActive(true);
-    const rounds = conversation.autoContinueRounds || 3;
+    const rounds = autoContinueRounds;
 
     try {
       for (let i = 0; i < rounds; i++) {
@@ -143,6 +148,11 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
         await handleAIResponse();
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for response
       }
+      
+      toast({
+        title: "Auto-Continue completato!",
+        description: `${rounds} round di conversazione completati con successo.`,
+      });
     } catch (error) {
       toast({
         title: "Auto-Continue interrotto",
@@ -414,15 +424,57 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 {personality.nameId === "geppo" ? "🏗️" : "🎨"} Chiedi a {personality.displayName.split(" - ")[0]}
               </Button>
             ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAutoContinue}
-              disabled={autoContinueActive || isTyping}
-              className="text-xs border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200"
-            >
-              ⚡ Auto-Continue (3 round)
-            </Button>
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={autoContinueActive || isTyping}
+                  className="text-xs border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200"
+                >
+                  <Settings className="h-3 w-3 mr-1" />
+                  ⚡ Auto-Continue ({autoContinueRounds} round)
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Configurazione Auto-Continue</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="rounds">Numero di round</Label>
+                    <Input
+                      id="rounds"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={autoContinueRounds}
+                      onChange={(e) => setAutoContinueRounds(parseInt(e.target.value) || 3)}
+                      className="w-full"
+                    />
+                    <p className="text-sm text-gray-500">
+                      Imposta quanti turni di conversazione AI devono essere eseguiti automaticamente.
+                    </p>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+                      Annulla
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        handleAutoContinue();
+                      }}
+                      disabled={autoContinueActive || isTyping}
+                      className="button-visible"
+                    >
+                      <Play className="h-4 w-4 mr-1" />
+                      Avvia Auto-Continue
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </CardContent>
