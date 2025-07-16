@@ -26,7 +26,12 @@ export default function FileUpload({
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    console.log("File selezionato:", file);
+    
+    if (!file) {
+      console.log("Nessun file selezionato");
+      return;
+    }
 
     // Limit file size to 10MB
     if (file.size > 10 * 1024 * 1024) {
@@ -38,11 +43,13 @@ export default function FileUpload({
       return;
     }
 
+    console.log(`Caricamento file: ${file.name}, dimensione: ${file.size}, tipo: ${file.type}`);
     setIsUploading(true);
 
     try {
       // Read file content
       const content = await readFileContent(file);
+      console.log("Contenuto file letto, lunghezza:", content.length);
       
       const attachmentData = {
         filename: generateUniqueFilename(file.name),
@@ -53,6 +60,8 @@ export default function FileUpload({
         uploadedBy: "user"
       };
 
+      console.log("Invio dati attachment:", attachmentData);
+
       const attachment = await apiRequest(
         `/api/conversations/${conversationId}/attachments`,
         {
@@ -61,6 +70,8 @@ export default function FileUpload({
           body: JSON.stringify(attachmentData),
         }
       );
+
+      console.log("Attachment creato:", attachment);
 
       toast({
         title: "File caricato",
@@ -72,10 +83,10 @@ export default function FileUpload({
       // Reset input
       event.target.value = "";
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error("Errore caricamento file:", error);
       toast({
         title: "Errore caricamento",
-        description: "Si è verificato un errore durante il caricamento del file",
+        description: `Si è verificato un errore: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -163,13 +174,15 @@ export default function FileUpload({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
-          <Input
-            type="file"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-            accept=".txt,.md,.json,.pdf,.png,.jpg,.jpeg,.csv"
-            className="file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
-          />
+          <div className="relative flex-1">
+            <Input
+              type="file"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+              accept=".txt,.md,.json,.pdf,.png,.jpg,.jpeg,.csv"
+              className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
           {isUploading && (
             <Badge variant="secondary" className="animate-pulse">
               Caricamento...
@@ -208,8 +221,9 @@ export default function FileUpload({
         )}
 
         <div className="text-xs text-muted-foreground">
-          <p>Supportati: testo (.txt, .md), JSON, PDF, immagini (.png, .jpg), CSV</p>
-          <p>Dimensione massima: 10MB</p>
+          <p>📋 Supportati: testo (.txt, .md), JSON, PDF, immagini (.png, .jpg), CSV</p>
+          <p>📏 Dimensione massima: 10MB</p>
+          <p>💡 Clicca su "Scegli file" per selezionare un documento da condividere nel Pantheon</p>
         </div>
       </CardContent>
     </Card>
