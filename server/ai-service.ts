@@ -39,6 +39,8 @@ export async function generateAIResponse(
       return await generateAnthropicResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
     } else if (targetProvider.type === "openai") {
       return await generateOpenAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
+    } else if (targetProvider.type === "mistral") {
+      return await generateMistralResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
     } else {
       throw new Error(`Tipo di provider non supportato: ${targetProvider.type}`);
     }
@@ -146,21 +148,17 @@ async function generateAnthropicResponse(
   // Aggiungi la cronologia della conversazione (ultimi 10 messaggi)
   const recentHistory = conversationHistory.slice(-10);
   for (const msg of recentHistory) {
-    if (msg.role === "user") {
-      messages.push({
-        role: "user",
-        content: msg.content
-      });
-    } else if (msg.senderId === personality.nameId) {
+    if (msg.senderId === personality.nameId) {
       messages.push({
         role: "assistant", 
         content: msg.content
       });
     } else {
-      // Messaggio di un'altra AI o personalità
+      // Messaggio dell'utente o di un'altra AI
+      const senderLabel = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
       messages.push({
         role: "user",
-        content: `[${msg.senderId}]: ${msg.content}`
+        content: `${senderLabel}: ${msg.content}`
       });
     }
   }
@@ -180,12 +178,81 @@ async function generateAnthropicResponse(
     max_tokens: 1000,
   });
 
-  if (!response.content?.[0]?.text) {
+  if (!response.content?.[0] || response.content[0].type !== 'text') {
     throw new Error("Risposta vuota dall'API Anthropic");
   }
 
   const aiResponse = response.content[0].text;
   console.log(`✅ Risposta Anthropic generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
+  
+  return aiResponse;
+}
+
+async function generateMistralResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string
+): Promise<string> {
+  // Mistral usa un'API compatibile con OpenAI
+  const mistral = new OpenAI({
+    apiKey: provider.apiKey,
+    baseURL: provider.baseUrl || "https://api.mistral.ai/v1",
+  });
+
+  // Costruisci la cronologia della conversazione per il context
+  let systemPrompt = personality.systemPrompt;
+  if (instructions) {
+    systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
+  }
+  
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    {
+      role: "system",
+      content: systemPrompt
+    }
+  ];
+
+  // Aggiungi la cronologia della conversazione (ultimi 10 messaggi)
+  const recentHistory = conversationHistory.slice(-10);
+  for (const msg of recentHistory) {
+    if (msg.senderId === personality.nameId) {
+      messages.push({
+        role: "assistant",
+        content: msg.content
+      });
+    } else {
+      // Messaggio dell'utente o di un'altra AI
+      const senderLabel = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
+      messages.push({
+        role: "user", 
+        content: `${senderLabel}: ${msg.content}`
+      });
+    }
+  }
+
+  // Aggiungi il nuovo messaggio
+  messages.push({
+    role: "user",
+    content: newMessage
+  });
+
+  console.log(`🤖 Generando risposta Mistral per ${personality.displayName}...`);
+
+  const response = await mistral.chat.completions.create({
+    model: provider.defaultModel || "mistral-large-latest",
+    messages,
+    max_tokens: 1000,
+    temperature: 0.7,
+  });
+
+  if (!response.choices?.[0]?.message?.content) {
+    throw new Error("Risposta vuota dall'API Mistral");
+  }
+
+  const aiResponse = response.choices[0].message.content;
+  console.log(`✅ Risposta Mistral generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
   
   return aiResponse;
 }

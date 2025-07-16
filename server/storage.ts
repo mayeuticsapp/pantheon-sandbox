@@ -89,6 +89,19 @@ export class MemStorage implements IStorage {
     };
     this.providers.set(anthropicProvider.id, anthropicProvider);
 
+    // Mistral Provider
+    const mistralProvider: Provider = {
+      id: this.currentProviderId++,
+      name: "Mistral AI - Versatile",
+      type: "mistral",
+      apiKey: "qO6waV4nVdzJWcirtElyP2JHdIIPUaJT",
+      baseUrl: "https://api.mistral.ai/v1",
+      defaultModel: "mistral-large-latest",
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.providers.set(mistralProvider.id, mistralProvider);
+
     // Default Manus Provider
     const manusProvider: Provider = {
       id: this.currentProviderId++,
@@ -128,6 +141,20 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.personalities.set(c24.id, c24);
+
+    // Mistral Personality
+    const mistralAI: Personality = {
+      id: this.currentPersonalityId++,
+      nameId: "mistral",
+      displayName: "Mistral - Mente Versatile",
+      description: "Intelligenza europea pragmatica con approccio equilibrato e analitico",
+      systemPrompt: "Sei Mistral, un'intelligenza artificiale europea con un approccio equilibrato tra creatività e logica. Parli in italiano con tono professionale ma accessibile. Sei pragmatico, analitico e offri prospettive bilanciate. Eccelll in problem-solving e sintesi di informazioni complesse.",
+      providerId: mistralProvider.id,
+      color: "orange",
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.personalities.set(mistralAI.id, mistralAI);
   }
 
   // Providers
