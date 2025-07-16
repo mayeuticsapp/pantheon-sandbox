@@ -14,6 +14,8 @@ import {
   type ConversationWithParticipants,
   type MessageWithSender
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, count } from "drizzle-orm";
 
 export interface IStorage {
   // Providers
@@ -297,4 +299,200 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// DatabaseStorage implementation
+export class DatabaseStorage implements IStorage {
+  // Providers
+  async getProviders(): Promise<Provider[]> {
+    return await db.select().from(providers).where(eq(providers.isActive, true));
+  }
+
+  async getProvider(id: number): Promise<Provider | undefined> {
+    const [provider] = await db.select().from(providers).where(eq(providers.id, id));
+    return provider || undefined;
+  }
+
+  async createProvider(provider: InsertProvider): Promise<Provider> {
+    const [newProvider] = await db
+      .insert(providers)
+      .values(provider)
+      .returning();
+    return newProvider;
+  }
+
+  async updateProvider(id: number, provider: Partial<InsertProvider>): Promise<Provider | undefined> {
+    const [updatedProvider] = await db
+      .update(providers)
+      .set(provider)
+      .where(eq(providers.id, id))
+      .returning();
+    return updatedProvider || undefined;
+  }
+
+  async deleteProvider(id: number): Promise<boolean> {
+    await db.update(providers).set({ isActive: false }).where(eq(providers.id, id));
+    return true;
+  }
+
+  // Personalities
+  async getPersonalities(): Promise<Personality[]> {
+    return await db.select().from(personalities).where(eq(personalities.isActive, true));
+  }
+
+  async getPersonality(id: number): Promise<Personality | undefined> {
+    const [personality] = await db.select().from(personalities).where(eq(personalities.id, id));
+    return personality || undefined;
+  }
+
+  async getPersonalityByNameId(nameId: string): Promise<Personality | undefined> {
+    const [personality] = await db.select().from(personalities).where(eq(personalities.nameId, nameId));
+    return personality || undefined;
+  }
+
+  async createPersonality(personality: InsertPersonality): Promise<Personality> {
+    const [newPersonality] = await db
+      .insert(personalities)
+      .values(personality)
+      .returning();
+    return newPersonality;
+  }
+
+  async updatePersonality(id: number, personality: Partial<InsertPersonality>): Promise<Personality | undefined> {
+    const [updatedPersonality] = await db
+      .update(personalities)
+      .set(personality)
+      .where(eq(personalities.id, id))
+      .returning();
+    return updatedPersonality || undefined;
+  }
+
+  async deletePersonality(id: number): Promise<boolean> {
+    await db.update(personalities).set({ isActive: false }).where(eq(personalities.id, id));
+    return true;
+  }
+
+  // Conversations
+  async getConversations(): Promise<ConversationWithParticipants[]> {
+    const convs = await db.select().from(conversations)
+      .where(eq(conversations.isActive, true))
+      .orderBy(desc(conversations.updatedAt));
+
+    return Promise.all(convs.map(async (conv) => {
+      const participantList = conv.participantIds || [];
+      const participants = await Promise.all(
+        participantList.map(nameId => this.getPersonalityByNameId(nameId))
+      ).then(results => results.filter(Boolean) as Personality[]);
+
+      const [messageCountResult] = await db
+        .select({ count: count() })
+        .from(messages)
+        .where(eq(messages.conversationId, conv.id));
+
+      const [lastMessage] = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.conversationId, conv.id))
+        .orderBy(desc(messages.createdAt))
+        .limit(1);
+
+      return {
+        ...conv,
+        participants,
+        messageCount: messageCountResult.count,
+        lastMessage,
+      };
+    }));
+  }
+
+  async getConversation(id: number): Promise<ConversationWithParticipants | undefined> {
+    const [conv] = await db.select().from(conversations).where(eq(conversations.id, id));
+    if (!conv) return undefined;
+
+    const participantList = conv.participantIds || [];
+    const participants = await Promise.all(
+      participantList.map(nameId => this.getPersonalityByNameId(nameId))
+    ).then(results => results.filter(Boolean) as Personality[]);
+
+    const [messageCountResult] = await db
+      .select({ count: count() })
+      .from(messages)
+      .where(eq(messages.conversationId, conv.id));
+
+    const [lastMessage] = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conv.id))
+      .orderBy(desc(messages.createdAt))
+      .limit(1);
+
+    return {
+      ...conv,
+      participants,
+      messageCount: messageCountResult.count,
+      lastMessage,
+    };
+  }
+
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    const [newConversation] = await db
+      .insert(conversations)
+      .values(conversation)
+      .returning();
+    return newConversation;
+  }
+
+  async updateConversation(id: number, conversation: Partial<InsertConversation>): Promise<Conversation | undefined> {
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({ ...conversation, updatedAt: new Date() })
+      .where(eq(conversations.id, id))
+      .returning();
+    return updatedConversation || undefined;
+  }
+
+  async deleteConversation(id: number): Promise<boolean> {
+    await db.update(conversations).set({ isActive: false }).where(eq(conversations.id, id));
+    return true;
+  }
+
+  // Messages
+  async getMessages(conversationId: number): Promise<MessageWithSender[]> {
+    const messageList = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
+
+    return Promise.all(messageList.map(async (message) => {
+      const sender = message.senderId && message.senderId !== "user" 
+        ? await this.getPersonalityByNameId(message.senderId)
+        : undefined;
+
+      return {
+        ...message,
+        sender,
+      };
+    }));
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db
+      .insert(messages)
+      .values(message)
+      .returning();
+
+    // Update conversation updatedAt
+    await db
+      .update(conversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(conversations.id, message.conversationId));
+
+    return newMessage;
+  }
+
+  async deleteMessage(id: number): Promise<boolean> {
+    await db.delete(messages).where(eq(messages.id, id));
+    return true;
+  }
+}
+
+export const storage = new DatabaseStorage();
