@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { providers, personalities } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function seedDatabase() {
   try {
@@ -35,7 +36,7 @@ export async function seedDatabase() {
     
     if (existingPersonalities.length === 0) {
       const [openaiProvider] = await db.select().from(providers).where(
-        db.$sql`name = 'OpenAI'`
+        eq(providers.name, 'OpenAI')
       );
 
       if (openaiProvider) {

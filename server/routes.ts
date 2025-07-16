@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProviderSchema, insertPersonalitySchema, insertConversationSchema, insertMessageSchema } from "@shared/schema";
+import { generateAIResponse } from "./ai-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -210,93 +211,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Chat endpoint
+  // AI Chat endpoint - Integrazione C24 per ChatGPT
   app.post("/api/chat", async (req, res) => {
     try {
       const { personalityId, message, conversationHistory = [] } = req.body;
+      
+      console.log(`🎭 Richiesta chat per ${personalityId}: "${message.substring(0, 50)}..."`);
       
       const personality = await storage.getPersonalityByNameId(personalityId);
       if (!personality) {
         return res.status(404).json({ message: "Personality not found" });
       }
 
-      const provider = await storage.getProvider(personality.providerId!);
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
-      }
+      // Genera la risposta AI usando il nuovo servizio
+      const aiResponse = await generateAIResponse(personality, conversationHistory, message);
 
-      // For OpenAI-compatible providers
-      if (provider.type === "openai") {
-        const messages = [
-          { role: "system", content: personality.systemPrompt },
-          ...conversationHistory.map((msg: any) => ({
-            role: msg.senderId === "user" ? "user" : "assistant",
-            content: msg.content
-          })),
-          { role: "user", content: message }
-        ];
-
-        const response = await fetch(`${provider.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${provider.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: provider.defaultModel,
-            messages,
-            temperature: 0.7,
-            max_tokens: 1000,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`OpenAI API error: ${response.statusText}`);
+      res.json({
+        response: aiResponse,
+        metadata: {
+          personality: personality.displayName,
+          model: "gpt-4o", // the newest OpenAI model
+          provider: "OpenAI",
+          timestamp: new Date().toISOString(),
         }
-
-        const data = await response.json();
-        const aiResponse = data.choices[0].message.content;
-
-        res.json({
-          response: aiResponse,
-          metadata: {
-            model: provider.defaultModel,
-            provider: provider.name,
-            tokens: data.usage?.total_tokens || 0,
-          }
-        });
-
-      } else if (provider.type === "manus") {
-        // Manus API implementation
-        const response = await fetch(`${provider.baseUrl}/chat`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${provider.apiKey}`,
-          },
-          body: JSON.stringify({
-            prompt: `${personality.systemPrompt}\n\nConversation:\n${conversationHistory.map((msg: any) => `${msg.senderId}: ${msg.content}`).join('\n')}\nUser: ${message}\n${personality.nameId}:`,
-            max_length: 1000,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Manus API error: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        res.json({
-          response: data.response || data.text || "No response from Manus API",
-          metadata: {
-            model: provider.defaultModel,
-            provider: provider.name,
-          }
-        });
-
-      } else {
-        res.status(400).json({ message: "Unsupported provider type" });
-      }
+      });
 
     } catch (error) {
       console.error("Chat API error:", error);
