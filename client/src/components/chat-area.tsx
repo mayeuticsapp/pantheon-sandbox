@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Play, Pause, Square, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings } from "lucide-react";
+import { Send, Play, Pause, Square, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings, Paperclip } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { messagesApi, chatApi, conversationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import type { MessageWithSender, Personality } from "@shared/schema";
+import FileUpload from "./file-upload";
+import type { MessageWithSender, Personality, Attachment } from "@shared/schema";
 
 interface ChatAreaProps {
   conversationId: number | null;
@@ -23,6 +24,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [dialogueMode, setDialogueMode] = useState<'stopped' | 'running' | 'paused'>('stopped');
   const [dialogueDelay, setDialogueDelay] = useState(8000); // 8 secondi tra i messaggi
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -39,6 +41,18 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const { data: messages = [] } = useQuery({
     queryKey: ["/api/conversations", conversationId, "messages"],
     queryFn: () => conversationId ? messagesApi.getByConversation(conversationId) : [],
+    enabled: !!conversationId,
+  });
+
+  // Get attachments for current conversation
+  const { data: attachments = [] } = useQuery({
+    queryKey: ["/api/conversations", conversationId, "attachments"],
+    queryFn: async () => {
+      if (!conversationId) return [];
+      const response = await fetch(`/api/conversations/${conversationId}/attachments`);
+      if (!response.ok) throw new Error("Failed to fetch attachments");
+      return response.json();
+    },
     enabled: !!conversationId,
   });
 
@@ -491,6 +505,22 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
           <div ref={messagesEndRef} />
         </div>
 
+        {/* File Upload Section */}
+        {showFileUpload && conversationId && (
+          <div className="p-4 border-t border-gray-100">
+            <FileUpload 
+              conversationId={conversationId}
+              attachments={attachments}
+              onFileUploaded={() => {
+                queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "attachments"] });
+              }}
+              onDeleteAttachment={() => {
+                queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "attachments"] });
+              }}
+            />
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-end space-x-3">
@@ -500,7 +530,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Scrivi il tuo messaggio o una domanda per le AI..."
-                  className="pr-12 resize-none"
+                  className="pr-16 resize-none"
                   rows={1}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -509,15 +539,26 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                     }
                   }}
                 />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 button-visible"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowFileUpload(!showFileUpload)}
+                    className="p-1.5 button-visible"
+                    title="Allega file"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSendMessage}
+                    disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                    className="p-1.5 button-visible"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
             <Button 

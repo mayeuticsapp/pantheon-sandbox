@@ -289,6 +289,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Attachments endpoints
+  app.get("/api/conversations/:id/attachments", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const attachments = await storage.getAttachments(conversationId);
+      res.json(attachments);
+    } catch (error) {
+      console.error("Error fetching attachments:", error);
+      res.status(500).json({ error: "Failed to fetch attachments" });
+    }
+  });
+
+  app.post("/api/conversations/:id/attachments", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { filename, originalName, mimeType, size, content, uploadedBy } = req.body;
+      
+      const attachment = await storage.createAttachment({
+        conversationId,
+        filename,
+        originalName,
+        mimeType,
+        size,
+        content,
+        uploadedBy: uploadedBy || "user"
+      });
+      
+      res.status(201).json(attachment);
+    } catch (error) {
+      console.error("Error creating attachment:", error);
+      res.status(500).json({ error: "Failed to create attachment" });
+    }
+  });
+
+  app.delete("/api/attachments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteAttachment(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
+      res.status(500).json({ error: "Failed to delete attachment" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

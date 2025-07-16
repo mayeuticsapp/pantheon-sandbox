@@ -3,6 +3,7 @@ import {
   personalities, 
   conversations, 
   messages,
+  attachments,
   type Provider, 
   type InsertProvider,
   type Personality, 
@@ -11,6 +12,8 @@ import {
   type InsertConversation,
   type Message, 
   type InsertMessage,
+  type Attachment,
+  type InsertAttachment,
   type ConversationWithParticipants,
   type MessageWithSender
 } from "@shared/schema";
@@ -44,6 +47,11 @@ export interface IStorage {
   getMessages(conversationId: number): Promise<MessageWithSender[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   deleteMessage(id: number): Promise<boolean>;
+
+  // Attachments
+  getAttachments(conversationId: number): Promise<Attachment[]>;
+  createAttachment(attachment: InsertAttachment): Promise<Attachment>;
+  deleteAttachment(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -546,6 +554,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMessage(id: number): Promise<boolean> {
     await db.delete(messages).where(eq(messages.id, id));
+    return true;
+  }
+
+  // Attachments
+  async getAttachments(conversationId: number): Promise<Attachment[]> {
+    return await db.select().from(attachments)
+      .where(eq(attachments.conversationId, conversationId))
+      .orderBy(desc(attachments.createdAt));
+  }
+
+  async createAttachment(attachment: InsertAttachment): Promise<Attachment> {
+    const [newAttachment] = await db
+      .insert(attachments)
+      .values(attachment)
+      .returning();
+    return newAttachment;
+  }
+
+  async deleteAttachment(id: number): Promise<boolean> {
+    await db.update(attachments).set({ isActive: false }).where(eq(attachments.id, id));
     return true;
   }
 }

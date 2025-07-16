@@ -53,6 +53,20 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const attachments = pgTable("attachments", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => conversations.id).notNull(),
+  filename: text("filename").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(), // in bytes
+  content: text("content"), // base64 or file content for text files
+  filePath: text("file_path"), // path for large binary files
+  uploadedBy: text("uploaded_by").default("user"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertProviderSchema = createInsertSchema(providers).omit({
   id: true,
@@ -71,6 +85,11 @@ export const insertConversationSchema = createInsertSchema(conversations).omit({
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAttachmentSchema = createInsertSchema(attachments).omit({
   id: true,
   createdAt: true,
 });
@@ -97,4 +116,12 @@ export type ConversationWithParticipants = Conversation & {
 
 export type MessageWithSender = Message & {
   sender?: Personality;
+};
+
+// Attachment types
+export type InsertAttachment = z.infer<typeof insertAttachmentSchema>;
+export type Attachment = typeof attachments.$inferSelect;
+
+export type ConversationWithFiles = ConversationWithParticipants & {
+  attachments: Attachment[];
 };
