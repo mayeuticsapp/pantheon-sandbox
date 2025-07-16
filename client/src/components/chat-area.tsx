@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Play, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings } from "lucide-react";
+import { Send, Play, Pause, Square, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,8 +20,9 @@ interface ChatAreaProps {
 export default function ChatArea({ conversationId, personalities }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [autoContinueActive, setAutoContinueActive] = useState(false);
-  const [autoContinueRounds, setAutoContinueRounds] = useState(3);
+  const [dialogueMode, setDialogueMode] = useState<'stopped' | 'running' | 'paused'>('stopped');
+  const [dialogueInterval, setDialogueInterval] = useState<NodeJS.Timeout | null>(null);
+  const [dialogueDelay, setDialogueDelay] = useState(4000); // 4 secondi tra i messaggi
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -88,6 +89,35 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Migliorata logica di alternanza AI
+  const getNextAI = (): string => {
+    if (!conversation?.participantIds || conversation.participantIds.length === 0) {
+      return "geppo"; // fallback
+    }
+
+    const availableAIs = conversation.participantIds;
+    
+    // Trova l'ultimo messaggio AI (escludendo messaggi utente)
+    const aiMessages = messages.filter(m => m.senderId !== "user");
+    
+    if (aiMessages.length === 0) {
+      // Prima AI a parlare: prendi la prima della lista
+      return availableAIs[0];
+    }
+
+    const lastAIMessage = aiMessages[aiMessages.length - 1];
+    const currentAIIndex = availableAIs.indexOf(lastAIMessage.senderId!);
+    
+    if (currentAIIndex === -1) {
+      // L'AI corrente non è nella lista dei partecipanti, prendi la prima
+      return availableAIs[0];
+    }
+
+    // Cicla alla prossima AI
+    const nextIndex = (currentAIIndex + 1) % availableAIs.length;
+    return availableAIs[nextIndex];
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !conversationId) return;
 
@@ -106,22 +136,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     if (!conversationId || !conversation) return;
 
     // Determine which AI should respond
-    let targetPersonality: string;
-    if (personalityNameId) {
-      targetPersonality = personalityNameId;
-    } else {
-      // Get last AI that spoke, then pick the next one
-      const lastAIMessage = messages.filter(m => m.senderId !== "user").pop();
-      const availableAIs = conversation.participantIds || [];
-      
-      if (lastAIMessage?.senderId && availableAIs.includes(lastAIMessage.senderId)) {
-        const currentIndex = availableAIs.indexOf(lastAIMessage.senderId);
-        const nextIndex = (currentIndex + 1) % availableAIs.length;
-        targetPersonality = availableAIs[nextIndex];
-      } else {
-        targetPersonality = availableAIs[0] || "geppo";
-      }
-    }
+    const targetPersonality = personalityNameId || getNextAI();
 
     setIsTyping(true);
 
@@ -137,31 +152,71 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     }
   };
 
-  const handleAutoContinue = async () => {
-    if (!conversation || autoContinueActive) return;
-
-    setAutoContinueActive(true);
-    const rounds = autoContinueRounds;
-
-    try {
-      for (let i = 0; i < rounds; i++) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay between messages
-        await handleAIResponse();
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for response
+  // Cleanup interval on unmount or conversation change
+  useEffect(() => {
+    return () => {
+      if (dialogueInterval) {
+        clearInterval(dialogueInterval);
       }
-      
-      toast({
-        title: "Auto-Continue completato!",
-        description: `${rounds} round di conversazione completati con successo.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Auto-Continue interrotto",
-        description: "Si è verificato un errore durante l'auto-continue",
-        variant: "destructive",
-      });
-    } finally {
-      setAutoContinueActive(false);
+    };
+  }, [conversationId, dialogueInterval]);
+
+  const startDialogue = () => {
+    if (!conversation || dialogueMode === 'running') return;
+
+    setDialogueMode('running');
+    
+    const interval = setInterval(async () => {
+      try {
+        await handleAIResponse();
+      } catch (error) {
+        console.error('Errore durante il dialogo automatico:', error);
+        stopDialogue();
+        toast({
+          title: "Dialogo interrotto",
+          description: "Si è verificato un errore durante il dialogo automatico",
+          variant: "destructive",
+        });
+      }
+    }, dialogueDelay);
+
+    setDialogueInterval(interval);
+    
+    toast({
+      title: "Dialogo Avviato",
+      description: "Le AI stanno ora conversando automaticamente",
+    });
+  };
+
+  const pauseDialogue = () => {
+    if (dialogueInterval) {
+      clearInterval(dialogueInterval);
+      setDialogueInterval(null);
+    }
+    setDialogueMode('paused');
+    
+    toast({
+      title: "Dialogo in Pausa",
+      description: "Il dialogo automatico è stato messo in pausa",
+    });
+  };
+
+  const stopDialogue = () => {
+    if (dialogueInterval) {
+      clearInterval(dialogueInterval);
+      setDialogueInterval(null);
+    }
+    setDialogueMode('stopped');
+    
+    toast({
+      title: "Dialogo Fermato",
+      description: "Il dialogo automatico è stato fermato",
+    });
+  };
+
+  const resumeDialogue = () => {
+    if (dialogueMode === 'paused') {
+      startDialogue();
     }
   };
 
@@ -248,15 +303,61 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
             </div>
             
             <div className="flex items-center space-x-2">
-              <Button 
-                size="sm" 
-                onClick={handleAutoContinue}
-                disabled={autoContinueActive}
-                className="button-visible"
-              >
-                <Play className="h-4 w-4 mr-1" />
-                {autoContinueActive ? "In corso..." : "Auto-Continue"}
-              </Button>
+              {dialogueMode === 'stopped' && (
+                <Button 
+                  size="sm" 
+                  onClick={startDialogue}
+                  className="button-visible"
+                >
+                  <Play className="h-4 w-4 mr-1" />
+                  Avvia Dialogo
+                </Button>
+              )}
+              
+              {dialogueMode === 'running' && (
+                <>
+                  <Button 
+                    size="sm" 
+                    onClick={pauseDialogue}
+                    className="button-visible"
+                    variant="outline"
+                  >
+                    <Pause className="h-4 w-4 mr-1" />
+                    Pausa
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={stopDialogue}
+                    className="button-visible"
+                    variant="destructive"
+                  >
+                    <Square className="h-4 w-4 mr-1" />
+                    Stop
+                  </Button>
+                </>
+              )}
+              
+              {dialogueMode === 'paused' && (
+                <>
+                  <Button 
+                    size="sm" 
+                    onClick={resumeDialogue}
+                    className="button-visible"
+                  >
+                    <Play className="h-4 w-4 mr-1" />
+                    Riprendi
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={stopDialogue}
+                    className="button-visible"
+                    variant="destructive"
+                  >
+                    <Square className="h-4 w-4 mr-1" />
+                    Stop
+                  </Button>
+                </>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="button-visible">
@@ -264,6 +365,10 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Impostazioni Dialogo
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     const conversationText = `${conversation?.title}\n\n${messages.map(m => 
                       `${m.senderId === 'user' ? 'Tu' : getPersonalityName(m.senderId!)}: ${m.content}`
@@ -438,58 +543,51 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 {personality.nameId === "geppo" ? "🏗️" : "🎨"} Chiedi a {personality.displayName.split(" - ")[0]}
               </Button>
             ))}
-            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={autoContinueActive || isTyping}
-                  className="text-xs border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200"
-                >
-                  <Settings className="h-3 w-3 mr-1" />
-                  ⚡ Auto-Continue ({autoContinueRounds} round)
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Configurazione Auto-Continue</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="rounds">Numero di round</Label>
-                    <Input
-                      id="rounds"
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={autoContinueRounds}
-                      onChange={(e) => setAutoContinueRounds(parseInt(e.target.value) || 3)}
-                      className="w-full"
-                    />
-                    <p className="text-sm text-gray-500">
-                      Imposta quanti turni di conversazione AI devono essere eseguiti automaticamente.
-                    </p>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
-                      Annulla
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        setIsSettingsOpen(false);
-                        handleAutoContinue();
-                      }}
-                      disabled={autoContinueActive || isTyping}
-                      className="button-visible"
-                    >
-                      <Play className="h-4 w-4 mr-1" />
-                      Avvia Auto-Continue
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+
           </div>
+
+          {/* Dialogue Settings Dialog */}
+          <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Impostazioni Dialogo Infinito</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="delay">Intervallo tra messaggi (millisecondi)</Label>
+                  <Input
+                    id="delay"
+                    type="number"
+                    value={dialogueDelay}
+                    onChange={(e) => setDialogueDelay(parseInt(e.target.value) || 4000)}
+                    min="1000"
+                    max="30000"
+                    step="500"
+                    className="w-32"
+                  />
+                  <p className="text-sm text-gray-500">
+                    Imposta quanto tempo aspettare tra un messaggio e l'altro durante il dialogo automatico.
+                    <br />
+                    <strong>Consigliato:</strong> 4000ms (4 secondi) per dare tempo alle AI di elaborare.
+                  </p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-1">Come funziona il Dialogo Infinito:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Le AI si alternano automaticamente nei messaggi</li>
+                    <li>• Puoi mettere in pausa o fermare in qualsiasi momento</li>
+                    <li>• La conversazione continua finché non la fermi tu</li>
+                    <li>• Perfetto per osservare dialoghi tra AI autentiche</li>
+                  </ul>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+                    Chiudi
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardContent>
     </Card>
