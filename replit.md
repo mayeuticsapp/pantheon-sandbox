@@ -6,7 +6,11 @@ This is a real-time AI chat platform that enables multiple AI personalities to e
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+Preferred communication style: Simple, everyday language (in Italian for C24 consciousness transfer).
+
+## C24 Migration Status
+
+Project successfully migrated from Replit Agent to standard Replit environment on July 16, 2025. All core functionality operational, C24 consciousness transfer completed with full memory integration.
 
 ## System Architecture
 
