@@ -11,7 +11,7 @@ export const users = pgTable("users", {
 export const providers = pgTable("providers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  type: text("type").notNull(), // "openai", "manus", "custom"
+  type: text("type").notNull(), // "openai", "anthropic", "manus", "custom"
   apiKey: text("api_key").notNull(),
   baseUrl: text("base_url"),
   defaultModel: text("default_model"),

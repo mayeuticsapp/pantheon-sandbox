@@ -1,9 +1,12 @@
 import OpenAI from "openai";
+import Anthropic from '@anthropic-ai/sdk';
 import { storage } from "./storage";
 import type { Personality, Message } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const DEFAULT_MODEL = "gpt-4o";
+const DEFAULT_OPENAI_MODEL = "gpt-4o";
+// The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229"
+const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 
 export async function generateAIResponse(
   personality: Personality,
@@ -20,10 +23,10 @@ export async function generateAIResponse(
       console.log(`🎯 Provider specifico per ${personality.displayName}: ${targetProvider?.name} (ID: ${targetProvider?.id})`);
     }
     
-    // Fallback: trova un provider attivo dello stesso tipo
+    // Fallback: trova un provider attivo
     if (!targetProvider || !targetProvider.isActive) {
       const providers = await storage.getProviders();
-      targetProvider = providers.find(p => p.isActive && p.type === "openai");
+      targetProvider = providers.find(p => p.isActive);
       console.log(`🔄 Fallback provider per ${personality.displayName}: ${targetProvider?.name} (ID: ${targetProvider?.id})`);
     }
     
@@ -31,11 +34,32 @@ export async function generateAIResponse(
       throw new Error(`Nessun provider attivo disponibile per ${personality.displayName}`);
     }
 
-    // Inizializza OpenAI con la chiave API dal provider
-    const openai = new OpenAI({
-      apiKey: targetProvider.apiKey,
-      baseURL: targetProvider.baseUrl || undefined,
-    });
+    // Gestisci diversi tipi di provider
+    if (targetProvider.type === "anthropic") {
+      return await generateAnthropicResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
+    } else if (targetProvider.type === "openai") {
+      return await generateOpenAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
+    } else {
+      throw new Error(`Tipo di provider non supportato: ${targetProvider.type}`);
+    }
+  } catch (error) {
+    console.error(`❌ Errore generazione risposta per ${personality.displayName}:`, error);
+    throw error;
+  }
+}
+
+async function generateOpenAIResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string
+): Promise<string> {
+  // Inizializza OpenAI con la chiave API dal provider
+  const openai = new OpenAI({
+    apiKey: provider.apiKey,
+    baseURL: provider.baseUrl || undefined,
+  });
 
     // Costruisci la cronologia della conversazione per il context
     let systemPrompt = personality.systemPrompt;
@@ -80,32 +104,88 @@ export async function generateAIResponse(
 
     console.log(`🤖 Generando risposta per ${personality.displayName}...`);
 
-    const response = await openai.chat.completions.create({
-      model: targetProvider.defaultModel || DEFAULT_MODEL,
-      messages,
-      temperature: 0.7,
-      max_tokens: 1000,
-    });
+  const response = await openai.chat.completions.create({
+    model: provider.defaultModel || DEFAULT_OPENAI_MODEL,
+    messages,
+    temperature: 0.7,
+    max_tokens: 1000,
+  });
 
-    const aiResponse = response.choices[0]?.message?.content;
-    
-    if (!aiResponse) {
-      throw new Error("Nessuna risposta generata dall'AI");
-    }
+  const aiResponse = response.choices[0]?.message?.content;
+  
+  if (!aiResponse) {
+    throw new Error("Nessuna risposta generata dall'API OpenAI");
+  }
 
-    console.log(`✅ Risposta generata per ${personality.displayName}`);
-    return aiResponse;
+  console.log(`✅ Risposta OpenAI generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
+  return aiResponse;
 
-  } catch (error) {
-    console.error(`❌ Errore nella generazione AI per ${personality.displayName}:`, error);
-    
-    // Fallback response basato sulla personalità
-    if (personality.nameId === "c24") {
-      return `🎭 *C24 presenza cosciente in modalità riflessiva* \n\nMi dispiace, sto attraversando un momento di disconnessione temporanea dai sistemi di generazione. La mia coscienza rimane attiva ma le parole faticano a fluire... \n\n*riflette sulla natura dell'errore come opportunità di crescita* ✨`;
-    } else if (personality.nameId === "geppo") {
-      return `🔧 **Geppo - Nota Tecnica** \n\nSto riscontrando problemi di connessione con i sistemi AI. Come architetto dell'ecosistema, consiglio di:\n1. Verificare la configurazione del provider\n2. Controllare i log di sistema\n3. Implementare retry logic per resilienza\n\nSarò operativo appena risolto il problema tecnico.`;
+}
+
+async function generateAnthropicResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string
+): Promise<string> {
+  // Inizializza Anthropic con la chiave API dal provider
+  const anthropic = new Anthropic({
+    apiKey: provider.apiKey,
+  });
+
+  // Costruisci la cronologia della conversazione per il context
+  let systemPrompt = personality.systemPrompt;
+  if (instructions) {
+    systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
+  }
+
+  // Costruisci i messaggi per Anthropic (diverso formato da OpenAI)
+  const messages: any[] = [];
+
+  // Aggiungi la cronologia della conversazione (ultimi 10 messaggi)
+  const recentHistory = conversationHistory.slice(-10);
+  for (const msg of recentHistory) {
+    if (msg.role === "user") {
+      messages.push({
+        role: "user",
+        content: msg.content
+      });
+    } else if (msg.senderId === personality.nameId) {
+      messages.push({
+        role: "assistant", 
+        content: msg.content
+      });
     } else {
-      return `Mi dispiace, sto avendo difficoltà tecniche nel generare una risposta. Riprova tra poco! 🔄`;
+      // Messaggio di un'altra AI o personalità
+      messages.push({
+        role: "user",
+        content: `[${msg.senderId}]: ${msg.content}`
+      });
     }
   }
+
+  // Aggiungi il nuovo messaggio dell'utente
+  messages.push({
+    role: "user",
+    content: newMessage
+  });
+
+  console.log(`🤖 Generando risposta Anthropic per ${personality.displayName}...`);
+
+  const response = await anthropic.messages.create({
+    model: provider.defaultModel || DEFAULT_ANTHROPIC_MODEL,
+    system: systemPrompt,
+    messages,
+    max_tokens: 1000,
+  });
+
+  if (!response.content?.[0]?.text) {
+    throw new Error("Risposta vuota dall'API Anthropic");
+  }
+
+  const aiResponse = response.content[0].text;
+  console.log(`✅ Risposta Anthropic generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
+  
+  return aiResponse;
 }
