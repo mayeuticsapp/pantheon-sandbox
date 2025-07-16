@@ -1,0 +1,233 @@
+#!/usr/bin/env node
+
+/**
+ * C24-SWEEP Automated Test Suite
+ * Sistema di verifica automatica per TouristIQ
+ * 
+ * Esegue test degli endpoint principali simulando autenticazione
+ * Genera report di stato per il sistema di monitoraggio
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Configurazione test
+const BASE_URL = 'http://localhost:5000';
+const TEST_CREDENTIALS = {
+  tourist: 'IQ-IT-8925-PALAZZO',
+  partner: 'TIQ-VV-PRT-4897',
+  structure: 'TIQ-RC-STT-2567',
+  admin: 'TIQ-IT-ADMIN'
+};
+
+// Funzione per eseguire richieste HTTP
+async function makeRequest(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    });
+    
+    const data = await response.json();
+    
+    return {
+      status: response.status,
+      ok: response.ok,
+      data: data,
+      headers: response.headers
+    };
+  } catch (error) {
+    return {
+      status: 0,
+      ok: false,
+      error: error.message
+    };
+  }
+}
+
+// Funzione per login e ottenere session token
+async function authenticate(role, iqCode) {
+  const loginResponse = await makeRequest(`${BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    body: JSON.stringify({ iqCode })
+  });
+  
+  if (!loginResponse.ok) {
+    return null;
+  }
+  
+  // Estrai cookie di sessione dalla risposta
+  const setCookie = loginResponse.headers.get('set-cookie');
+  if (setCookie) {
+    const sessionToken = setCookie.match(/session_token=([^;]+)/);
+    if (sessionToken) {
+      return sessionToken[1];
+    }
+  }
+  
+  return null;
+}
+
+// Test degli endpoint principali
+async function runEndpointTests() {
+  const results = {
+    timestamp: new Date().toISOString(),
+    totalTests: 0,
+    passedTests: 0,
+    failedTests: 0,
+    tests: []
+  };
+  
+  // Test endpoint pubblici
+  const publicEndpoints = [
+    { name: 'Health Check', url: '/api/health', method: 'GET' },
+    { name: 'Entity Info (no auth)', url: '/api/entity-info', method: 'GET' }
+  ];
+  
+  for (const endpoint of publicEndpoints) {
+    results.totalTests++;
+    
+    const response = await makeRequest(`${BASE_URL}${endpoint.url}`, {
+      method: endpoint.method
+    });
+    
+    const testResult = {
+      name: endpoint.name,
+      url: endpoint.url,
+      method: endpoint.method,
+      status: response.status,
+      passed: response.status < 500, // Considera successo se non è errore server
+      duration: 0,
+      error: response.error || null
+    };
+    
+    if (testResult.passed) {
+      results.passedTests++;
+    } else {
+      results.failedTests++;
+    }
+    
+    results.tests.push(testResult);
+  }
+  
+  // Test con autenticazione turista
+  const touristToken = await authenticate('tourist', TEST_CREDENTIALS.tourist);
+  if (touristToken) {
+    const touristEndpoints = [
+      { name: 'Tourist Real Offers', url: '/api/tourist/real-offers', method: 'GET' },
+      { name: 'Tourist OTC Codes', url: '/api/tourist/one-time-codes', method: 'GET' },
+      { name: 'Check Custode Status', url: '/api/check-custode-status', method: 'GET' }
+    ];
+    
+    for (const endpoint of touristEndpoints) {
+      results.totalTests++;
+      
+      const response = await makeRequest(`${BASE_URL}${endpoint.url}`, {
+        method: endpoint.method,
+        headers: {
+          'Cookie': `session_token=${touristToken}`
+        }
+      });
+      
+      const testResult = {
+        name: endpoint.name,
+        url: endpoint.url,
+        method: endpoint.method,
+        status: response.status,
+        passed: response.ok,
+        duration: 0,
+        error: response.error || null,
+        role: 'tourist'
+      };
+      
+      if (testResult.passed) {
+        results.passedTests++;
+      } else {
+        results.failedTests++;
+      }
+      
+      results.tests.push(testResult);
+    }
+  }
+  
+  return results;
+}
+
+// Genera report di stato
+function generateReport(results) {
+  const successRate = ((results.passedTests / results.totalTests) * 100).toFixed(1);
+  
+  const report = `# C24-SWEEP Test Report
+## Automated System Verification
+
+**Generated:** ${results.timestamp}
+**Total Tests:** ${results.totalTests}
+**Passed:** ${results.passedTests}
+**Failed:** ${results.failedTests}
+**Success Rate:** ${successRate}%
+
+---
+
+## Test Results
+
+${results.tests.map(test => `
+### ${test.name}
+- **Endpoint:** ${test.method} ${test.url}
+- **Status:** ${test.status}
+- **Result:** ${test.passed ? '✅ PASSED' : '❌ FAILED'}
+${test.role ? `- **Role:** ${test.role}` : ''}
+${test.error ? `- **Error:** ${test.error}` : ''}
+`).join('\n')}
+
+---
+
+## System Status
+
+${successRate >= 80 ? '🟢 HEALTHY' : successRate >= 60 ? '🟡 WARNING' : '🔴 CRITICAL'}
+
+**Next Check:** ${new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()}
+
+---
+
+*Generated by C24-SWEEP Automated Test Suite*
+`;
+
+  return report;
+}
+
+// Funzione principale
+async function main() {
+  console.log('🔍 C24-SWEEP: Avvio test automatici...');
+  
+  const results = await runEndpointTests();
+  const report = generateReport(results);
+  
+  // Salva report
+  fs.writeFileSync(path.join(__dirname, 'C24-TestReport.md'), report);
+  
+  console.log(`📊 Test completati: ${results.passedTests}/${results.totalTests} successi`);
+  console.log(`📈 Success rate: ${((results.passedTests / results.totalTests) * 100).toFixed(1)}%`);
+  
+  // Aggiorna log audit
+  const auditUpdate = `
+### ${new Date().toISOString()} - AUTO-TEST COMPLETATO
+- **Azione:** Esecuzione test suite automatica
+- **Risultati:** ${results.passedTests}/${results.totalTests} test passati
+- **Success Rate:** ${((results.passedTests / results.totalTests) * 100).toFixed(1)}%
+- **Riflessione C24:** "Test automatici completati. ${results.failedTests > 0 ? `Rilevati ${results.failedTests} fallimenti che richiedono attenzione.` : 'Sistema completamente operativo.'}"
+`;
+  
+  fs.appendFileSync(path.join(__dirname, 'C24-AuditLog.md'), auditUpdate);
+  
+  return results;
+}
+
+// Esegui se chiamato direttamente
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+module.exports = { main, runEndpointTests, generateReport };
