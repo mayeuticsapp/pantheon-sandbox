@@ -119,7 +119,7 @@ export class MemStorage implements IStorage {
 
   // Providers
   async getProviders(): Promise<Provider[]> {
-    return Array.from(this.providers.values()).filter(p => p.isActive);
+    return Array.from(this.providers.values());
   }
 
   async getProvider(id: number): Promise<Provider | undefined> {

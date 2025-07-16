@@ -74,6 +74,50 @@
     background-color: hsl(var(--geppo));
   }
   
+  .c24 {
+    color: hsl(var(--c24));
+  }
+  
+  .bg-c24 {
+    background-color: hsl(var(--c24));
+  }
+  
+  .connection {
+    color: hsl(var(--connection));
+  }
+  
+  .bg-connection {
+    background-color: hsl(var(--connection));
+  }
+  
+  .dark-primary {
+    color: hsl(var(--dark-primary));
+  }
+  
+  .text-dark-primary {
+    color: hsl(var(--dark-primary)) !important;
+  }
+  
+  /* Miglioramenti visibilità */
+  .text-visible {
+    color: hsl(var(--dark-primary)) !important;
+    font-weight: 500;
+  }
+  
+  .button-visible {
+    background-color: hsl(var(--geppo)) !important;
+    color: white !important;
+    font-weight: 600;
+    border: 2px solid hsl(var(--geppo));
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  }
+  
+  .button-visible:hover {
+    background-color: hsl(214, 84%, 50%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+  }
+  
   .border-geppo {
     border-color: hsl(var(--geppo));
   }

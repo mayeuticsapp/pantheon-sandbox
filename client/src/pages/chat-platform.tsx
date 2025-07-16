@@ -71,7 +71,7 @@ export default function ChatPlatform() {
                   <Bot className="text-white text-lg" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-dark-primary">AI Chat Platform</h1>
+                  <h1 className="text-xl font-bold text-visible">AI Chat Platform</h1>
                   <p className="text-xs text-gray-500">Gestione Conversazioni Intelligenti</p>
                 </div>
               </div>
@@ -85,8 +85,8 @@ export default function ChatPlatform() {
                 }}
                 className={`px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-colors ${
                   activeTab === "conversations"
-                    ? "bg-geppo text-white shadow-md"
-                    : "text-gray-600 hover:text-dark-primary hover:bg-gray-100"
+                    ? "button-visible"
+                    : "text-visible hover:bg-gray-100 border border-gray-300"
                 }`}
               >
                 <Bot className="inline mr-2 h-4 w-4" />
@@ -104,8 +104,8 @@ export default function ChatPlatform() {
                 }}
                 className={`px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-colors ${
                   activeTab === "personalities"
-                    ? "bg-geppo text-white shadow-md"
-                    : "text-gray-600 hover:text-dark-primary hover:bg-gray-100"
+                    ? "button-visible"
+                    : "text-visible hover:bg-gray-100 border border-gray-300"
                 }`}
               >
                 <Users className="inline mr-2 h-4 w-4" />
@@ -123,8 +123,8 @@ export default function ChatPlatform() {
                 }}
                 className={`px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-colors ${
                   activeTab === "providers"
-                    ? "bg-geppo text-white shadow-md"
-                    : "text-gray-600 hover:text-dark-primary hover:bg-gray-100"
+                    ? "button-visible"
+                    : "text-visible hover:bg-gray-100 border border-gray-300"
                 }`}
               >
                 <Plug className="inline mr-2 h-4 w-4" />

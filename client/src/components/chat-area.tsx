@@ -192,7 +192,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                     createButton.click();
                   }
                 }}
-                className="bg-geppo hover:bg-blue-700 text-white font-medium shadow-md"
+                className="button-visible"
                 size="lg"
               >
                 <Plus className="h-5 w-5 mr-2" />

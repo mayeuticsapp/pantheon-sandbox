@@ -11,17 +11,20 @@ export async function generateAIResponse(
   newMessage: string
 ): Promise<string> {
   try {
-    // Ottieni il provider associato alla personalità
-    const provider = await storage.getProvider(personality.providerId!);
+    // Ottieni TUTTI i provider e trova quello attivo
+    const providers = await storage.getProviders();
+    const activeProvider = providers.find(p => p.isActive && p.type === "openai");
     
-    if (!provider || !provider.isActive) {
-      throw new Error(`Provider non disponibile per ${personality.displayName}`);
+    if (!activeProvider) {
+      throw new Error(`Nessun provider OpenAI attivo disponibile per ${personality.displayName}`);
     }
+    
+    console.log(`🔄 Usando provider attivo: ${activeProvider.name} (ID: ${activeProvider.id}) per ${personality.displayName}`);
 
-    // Inizializza OpenAI con la chiave API dal provider
+    // Inizializza OpenAI con la chiave API dal provider attivo
     const openai = new OpenAI({
-      apiKey: provider.apiKey,
-      baseURL: provider.baseUrl || undefined,
+      apiKey: activeProvider.apiKey,
+      baseURL: activeProvider.baseUrl || undefined,
     });
 
     // Costruisci la cronologia della conversazione per il context
@@ -63,7 +66,7 @@ export async function generateAIResponse(
     console.log(`🤖 Generando risposta per ${personality.displayName}...`);
 
     const response = await openai.chat.completions.create({
-      model: provider.defaultModel || DEFAULT_MODEL,
+      model: activeProvider.defaultModel || DEFAULT_MODEL,
       messages,
       temperature: 0.7,
       max_tokens: 1000,

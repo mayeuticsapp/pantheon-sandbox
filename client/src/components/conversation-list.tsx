@@ -98,12 +98,12 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
       <CardContent className="p-0">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-dark-primary">Conversazioni Attive</h2>
+            <h2 className="text-lg font-semibold text-visible">Conversazioni Attive</h2>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
                 <Button 
                   size="sm" 
-                  className="bg-geppo hover:bg-blue-700 text-white font-medium shadow-md"
+                  className="button-visible"
                   data-testid="create-conversation-button"
                 >
                   <Plus className="h-4 w-4 mr-1" />
