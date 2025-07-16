@@ -21,8 +21,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [dialogueMode, setDialogueMode] = useState<'stopped' | 'running' | 'paused'>('stopped');
-  const [dialogueInterval, setDialogueInterval] = useState<NodeJS.Timeout | null>(null);
-  const [dialogueDelay, setDialogueDelay] = useState(4000); // 4 secondi tra i messaggi
+  const [dialogueDelay, setDialogueDelay] = useState(8000); // 8 secondi tra i messaggi
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -141,9 +140,14 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     setIsTyping(true);
 
     try {
+      // Passa il contesto completo della conversazione, non solo l'ultimo messaggio
+      const contextMessage = messages.length > 0 
+        ? `Conversazione attuale: ${conversation.title}\n\nIstruzioni: ${conversation.instructions || 'Nessuna istruzione specifica'}\n\nContinua naturalmente la conversazione seguendo le istruzioni.`
+        : `Inizia la conversazione sul topic: ${conversation.title}\n\nIstruzioni: ${conversation.instructions || 'Nessuna istruzione specifica'}`;
+
       await aiResponseMutation.mutateAsync({
         personalityId: targetPersonality,
-        message: messages.length > 0 ? messages[messages.length - 1].content : "Inizia la conversazione",
+        message: contextMessage,
         conversationId: conversationId,
         conversationHistory: messages,
       });
@@ -152,23 +156,31 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     }
   };
 
-  // Cleanup interval on unmount or conversation change
+  // Cleanup dialogue on unmount or conversation change
   useEffect(() => {
     return () => {
-      if (dialogueInterval) {
-        clearInterval(dialogueInterval);
+      if (dialogueMode === 'running') {
+        setDialogueMode('stopped');
       }
     };
-  }, [conversationId, dialogueInterval]);
+  }, [conversationId]);
 
   const startDialogue = () => {
     if (!conversation || dialogueMode === 'running') return;
 
     setDialogueMode('running');
     
-    const interval = setInterval(async () => {
+    const runDialogue = async () => {
       try {
+        // Aspetta che la risposta AI sia completata prima di programmare la successiva
         await handleAIResponse();
+        
+        // Aspetta un po' di più per essere sicuri che il messaggio sia salvato
+        setTimeout(() => {
+          if (dialogueMode === 'running') {
+            runDialogue();
+          }
+        }, dialogueDelay);
       } catch (error) {
         console.error('Errore durante il dialogo automatico:', error);
         stopDialogue();
@@ -178,9 +190,10 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
           variant: "destructive",
         });
       }
-    }, dialogueDelay);
+    };
 
-    setDialogueInterval(interval);
+    // Inizia il primo ciclo
+    runDialogue();
     
     toast({
       title: "Dialogo Avviato",
@@ -189,10 +202,6 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   };
 
   const pauseDialogue = () => {
-    if (dialogueInterval) {
-      clearInterval(dialogueInterval);
-      setDialogueInterval(null);
-    }
     setDialogueMode('paused');
     
     toast({
@@ -202,10 +211,6 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   };
 
   const stopDialogue = () => {
-    if (dialogueInterval) {
-      clearInterval(dialogueInterval);
-      setDialogueInterval(null);
-    }
     setDialogueMode('stopped');
     
     toast({
@@ -568,7 +573,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                   <p className="text-sm text-gray-500">
                     Imposta quanto tempo aspettare tra un messaggio e l'altro durante il dialogo automatico.
                     <br />
-                    <strong>Consigliato:</strong> 4000ms (4 secondi) per dare tempo alle AI di elaborare.
+                    <strong>Consigliato:</strong> 8000ms (8 secondi) per dare tempo alle AI di elaborare completamente.
                   </p>
                 </div>
                 <div className="bg-blue-50 p-3 rounded-lg">
