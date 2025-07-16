@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Genera la risposta AI usando il nuovo servizio
-      const aiResponse = await generateAIResponse(personality, conversationHistory, message, instructions);
+      const aiResponse = await generateAIResponse(personality, conversationHistory, message, instructions, conversationId);
 
       res.json({
         response: aiResponse,

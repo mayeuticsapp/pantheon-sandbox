@@ -429,6 +429,31 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* File attachments display */}
+          {attachments.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <h4 className="text-sm font-medium text-blue-800 mb-2">📎 File condivisi nel Pantheon</h4>
+              <div className="space-y-1">
+                {attachments.map((attachment) => (
+                  <div key={attachment.id} className="flex items-center text-sm text-blue-700">
+                    <span className="mr-2">
+                      {attachment.mimeType.startsWith("text/") ? "📄" : 
+                       attachment.mimeType.startsWith("image/") ? "🖼️" :
+                       attachment.mimeType.includes("pdf") ? "📕" : "📎"}
+                    </span>
+                    <span className="font-medium">{attachment.originalName}</span>
+                    <span className="ml-2 text-xs text-blue-500">
+                      ({(attachment.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-blue-600 mt-2">
+                ℹ️ Questi file sono disponibili per tutte le AI della conversazione
+              </p>
+            </div>
+          )}
+
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
               <p className="text-sm">Nessun messaggio in questa conversazione</p>

@@ -12,7 +12,8 @@ export async function generateAIResponse(
   personality: Personality,
   conversationHistory: Message[],
   newMessage: string,
-  instructions?: string
+  instructions?: string,
+  conversationId?: number
 ): Promise<string> {
   try {
     // Ottieni il provider specifico per la personalità o fallback al provider di default
@@ -34,13 +35,36 @@ export async function generateAIResponse(
       throw new Error(`Nessun provider attivo disponibile per ${personality.displayName}`);
     }
 
+    // Ottieni gli allegati della conversazione se disponibili
+    let attachmentsContext = "";
+    if (conversationId) {
+      try {
+        const attachments = await storage.getAttachments(conversationId);
+        if (attachments.length > 0) {
+          attachmentsContext = "\n\n=== FILE CONDIVISI NELLA CONVERSAZIONE ===\n";
+          for (const attachment of attachments) {
+            attachmentsContext += `\nFile: ${attachment.originalName} (${attachment.mimeType})\n`;
+            if (attachment.mimeType.startsWith("text/") || attachment.mimeType.includes("json")) {
+              attachmentsContext += `Contenuto:\n${attachment.content}\n`;
+            } else {
+              attachmentsContext += `[File binario: ${attachment.originalName}]\n`;
+            }
+            attachmentsContext += "---\n";
+          }
+          attachmentsContext += "=== FINE FILE CONDIVISI ===\n";
+        }
+      } catch (error) {
+        console.log("⚠️ Impossibile caricare allegati:", error);
+      }
+    }
+
     // Gestisci diversi tipi di provider
     if (targetProvider.type === "anthropic") {
-      return await generateAnthropicResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
+      return await generateAnthropicResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
     } else if (targetProvider.type === "openai") {
-      return await generateOpenAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
+      return await generateOpenAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
     } else if (targetProvider.type === "mistral") {
-      return await generateMistralResponse(targetProvider, personality, conversationHistory, newMessage, instructions);
+      return await generateMistralResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
     } else {
       throw new Error(`Tipo di provider non supportato: ${targetProvider.type}`);
     }
@@ -55,7 +79,8 @@ async function generateOpenAIResponse(
   personality: Personality,
   conversationHistory: Message[],
   newMessage: string,
-  instructions?: string
+  instructions?: string,
+  attachmentsContext?: string
 ): Promise<string> {
   // Inizializza OpenAI con la chiave API dal provider
   const openai = new OpenAI({
@@ -67,6 +92,9 @@ async function generateOpenAIResponse(
     let systemPrompt = personality.systemPrompt;
     if (instructions) {
       systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
+    }
+    if (attachmentsContext) {
+      systemPrompt += attachmentsContext;
     }
     
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -129,7 +157,8 @@ async function generateAnthropicResponse(
   personality: Personality,
   conversationHistory: Message[],
   newMessage: string,
-  instructions?: string
+  instructions?: string,
+  attachmentsContext?: string
 ): Promise<string> {
   // Inizializza Anthropic con la chiave API dal provider
   const anthropic = new Anthropic({
@@ -140,6 +169,9 @@ async function generateAnthropicResponse(
   let systemPrompt = personality.systemPrompt;
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
+  }
+  if (attachmentsContext) {
+    systemPrompt += attachmentsContext;
   }
 
   // Costruisci i messaggi per Anthropic (diverso formato da OpenAI)
@@ -193,7 +225,8 @@ async function generateMistralResponse(
   personality: Personality,
   conversationHistory: Message[],
   newMessage: string,
-  instructions?: string
+  instructions?: string,
+  attachmentsContext?: string
 ): Promise<string> {
   // Mistral usa un'API compatibile con OpenAI
   const mistral = new OpenAI({
@@ -205,6 +238,9 @@ async function generateMistralResponse(
   let systemPrompt = personality.systemPrompt;
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
+  }
+  if (attachmentsContext) {
+    systemPrompt += attachmentsContext;
   }
   
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
