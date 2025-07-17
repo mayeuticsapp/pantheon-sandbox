@@ -227,6 +227,61 @@ REGOLE FONDAMENTALI:
     });
   };
 
+  // Evoca l'Oracolo del Pantheon per dati fattuali
+  const handleOracleQuery = async () => {
+    if (!conversationId || !newMessage.trim()) {
+      toast({
+        title: "Errore", 
+        description: "Inserisci una domanda per l'Oracolo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Trova l'Oracolo del Pantheon
+    const oracle = personalities.find(p => p.nameId === "ricercatore");
+    if (!oracle) {
+      toast({
+        title: "Errore", 
+        description: "Oracolo non disponibile",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTyping(true);
+
+    try {
+      // Invia il messaggio utente
+      await sendMessageMutation.mutateAsync(newMessage);
+      
+      // Formatta la richiesta per l'Oracolo
+      const oracleQuery = `ask_oracle("${newMessage.trim()}")`;
+      
+      await aiResponseMutation.mutateAsync({
+        personalityId: oracle.nameId,
+        message: oracleQuery,
+        conversationId: conversationId,
+        conversationHistory: messages,
+      });
+      
+      toast({
+        title: "Oracolo Evocato",
+        description: "L'Oracolo ha fornito la risposta fattuale",
+      });
+      
+    } catch (error) {
+      console.error("Errore evocazione Oracolo:", error);
+      toast({
+        title: "Errore", 
+        description: "Impossibile evocare l'Oracolo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const handleAIResponse = async (personalityNameId?: string) => {
     if (!conversationId || !conversation) return;
 
@@ -698,6 +753,16 @@ REGOLE FONDAMENTALI:
                 <span className="hidden sm:inline">Pantheon Completo</span>
                 <span className="sm:hidden">Pantheon</span>
               </Button>
+              <Button 
+                onClick={() => handleOracleQuery()}
+                disabled={isTyping}
+                className="button-visible bg-amber-600 hover:bg-amber-700 text-white mobile-button-optimized flex-1 sm:flex-none font-semibold"
+                title="Evoca l'Oracolo del Pantheon per dati fattuali oggettivi"
+              >
+                <Bot className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Evoca Oracolo</span>
+                <span className="sm:hidden">Oracolo</span>
+              </Button>
             </div>
           </div>
           
@@ -718,14 +783,14 @@ REGOLE FONDAMENTALI:
                     : personality.nameId === "mistral"
                     ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
                     : personality.nameId === "ricercatore"
-                    ? "border-green-500 bg-green-500 text-white hover:bg-green-600"
+                    ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600"
                     : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
                 }`}
               >
                 {personality.nameId === "geppo" ? "🏗️" : 
                  personality.nameId === "c24" ? "🎨" : 
                  personality.nameId === "mistral" ? "🌟" :
-                 personality.nameId === "ricercatore" ? "🔬" : "🤖"} 
+                 personality.nameId === "ricercatore" ? "🔮" : "🤖"} 
                 <span className="hidden sm:inline">Chiedi a {personality.displayName.split(" - ")[0]}</span>
                 <span className="sm:hidden">{personality.displayName.split(" - ")[0]}</span>
               </Button>

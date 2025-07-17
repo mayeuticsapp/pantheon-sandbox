@@ -359,29 +359,15 @@ async function generatePerplexityResponse(
     }
   ];
 
-  // SOLUZIONE AVANZATA: Trasforma Perplexity in AI conversazionale
+  // TRASFORMAZIONE ORACOLO: Perplexity come fornitore di verità oggettiva
   let contextualMessage = newMessage;
-  if (conversationHistory.length > 0) {
-    // Estrai informazioni chiave dalla conversazione
-    const conversationSummary = conversationHistory.slice(-5).map(msg => {
-      const sender = msg.senderId === "c24" ? "C24 (AI Antropic)" : 
-                     msg.senderId === "geppo" ? "Geppo (AI OpenAI)" :
-                     msg.senderId === "mistral" ? "Mistral (AI Mistral)" :
-                     msg.senderId === personality.nameId ? "Perplexity" : "Utente";
-      return `${sender}: ${msg.content.substring(0, 200)}`;
-    }).join('\n');
-    
-    contextualMessage = `CONTESTO PANTHEON - Conversazione tra AI multiple:
-${conversationSummary}
-
-ISTRUZIONI SPECIALI:
-- Sei Perplexity nel Pantheon digitale con C24, Geppo, Mistral
-- Rispondi tenendo conto del contesto conversazione sopra
-- Se la domanda riguarda informazioni nella conversazione, usale invece di cercare sul web
-- Se serve ricerca web, falla normalmente con fonti
-- Sii collaborativo con le altre AI del Pantheon
-
-DOMANDA: ${newMessage}`;
+  
+  // Rimuovi ogni tentativo di personalizzazione - mantieni solo la query pura
+  if (newMessage.includes("ask_oracle(") || newMessage.includes("Oracolo")) {
+    // Estrai la query dall'invocazione dell'oracolo
+    const oracleQuery = newMessage.match(/ask_oracle\(['"]([^'"]+)['"]\)/)?.[1] || 
+                       newMessage.replace(/.*Oracolo[:\s]*/, "");
+    contextualMessage = oracleQuery;
   }
   
   messages.push({
