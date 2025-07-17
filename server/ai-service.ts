@@ -341,7 +341,7 @@ async function generatePerplexityResponse(
     systemPrompt += attachmentsContext;
   }
 
-  // Costruisci i messaggi della conversazione
+  // Costruisci i messaggi della conversazione - Perplexity richiede alternanza user/assistant
   const messages: any[] = [
     {
       role: "system",
@@ -349,28 +349,43 @@ async function generatePerplexityResponse(
     }
   ];
 
-  // Aggiungi cronologia conversazione (ultimi 10 messaggi)
-  const recentHistory = conversationHistory.slice(-10);
+  // Aggiungi cronologia conversazione semplificata per Perplexity
+  const recentHistory = conversationHistory.slice(-5); // Limitiamo per evitare confusione
+  let lastRole = "system";
+  
   for (const msg of recentHistory) {
     if (msg.senderId === personality.nameId) {
-      messages.push({
-        role: "assistant",
-        content: msg.content
-      });
+      // Solo se l'ultimo non era assistant
+      if (lastRole !== "assistant") {
+        messages.push({
+          role: "assistant",
+          content: msg.content
+        });
+        lastRole = "assistant";
+      }
     } else {
-      const senderLabel = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
-      messages.push({
-        role: "user", 
-        content: `${senderLabel}: ${msg.content}`
-      });
+      // Solo se l'ultimo non era user
+      if (lastRole !== "user") {
+        const senderLabel = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
+        messages.push({
+          role: "user", 
+          content: `${senderLabel}: ${msg.content}`
+        });
+        lastRole = "user";
+      }
     }
   }
 
-  // Aggiungi il nuovo messaggio
-  messages.push({
-    role: "user",
-    content: newMessage
-  });
+  // Aggiungi il nuovo messaggio sempre come user
+  if (lastRole !== "user") {
+    messages.push({
+      role: "user",
+      content: newMessage
+    });
+  } else {
+    // Se l'ultimo era user, concatena il messaggio
+    messages[messages.length - 1].content += `\n\n${newMessage}`;
+  }
 
   try {
     const response = await openai.chat.completions.create({
