@@ -103,6 +103,7 @@ async function generateOpenAIResponse(
 
     // Costruisci la cronologia della conversazione per il context
     let systemPrompt = personality.systemPrompt;
+    // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
     if (instructions) {
       systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
     }
@@ -182,6 +183,7 @@ async function generateAnthropicResponse(
 
   // Costruisci la cronologia della conversazione per il context
   let systemPrompt = personality.systemPrompt;
+  // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
   }
@@ -251,6 +253,7 @@ async function generateMistralResponse(
 
   // Costruisci la cronologia della conversazione per il context
   let systemPrompt = personality.systemPrompt;
+  // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
   }

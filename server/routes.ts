@@ -223,15 +223,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Personality not found" });
       }
 
-      // Ottieni le istruzioni della conversazione se disponibili
-      let instructions: string | undefined;
-      if (conversationId) {
-        const conversation = await storage.getConversation(conversationId);
-        instructions = conversation?.instructions || undefined;
-      }
-
+      // Le istruzioni sono già incluse nel messaggio dal frontend
+      // Non c'è bisogno di cercarle nella conversazione
+      
       // Genera la risposta AI usando il nuovo servizio
-      const aiResponse = await generateAIResponse(personality, conversationHistory, message, instructions, conversationId);
+      const aiResponse = await generateAIResponse(personality, conversationHistory, message, undefined, conversationId);
 
       res.json({
         response: aiResponse,
