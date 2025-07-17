@@ -65,6 +65,8 @@ export async function generateAIResponse(
       return await generateOpenAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
     } else if (targetProvider.type === "mistral") {
       return await generateMistralResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
+    } else if (targetProvider.type === "perplexity") {
+      return await generatePerplexityResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
     } else {
       throw new Error(`Tipo di provider non supportato: ${targetProvider.type}`);
     }
@@ -83,6 +85,7 @@ function getPersonalityTemperature(nameId: string): number {
     case 'hermes': return 0.9; // Veloce e innovativa
     case 'mistral': return 0.7; // Equilibrata
     case 'prometeo': return 0.9; // Rivoluzionaria e audace
+    case 'ricercatore': return 0.2; // Molto preciso per ricerca
     default: return 0.7;
   }
 }
@@ -311,4 +314,85 @@ async function generateMistralResponse(
   console.log(`✅ Risposta Mistral generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
   
   return aiResponse;
+}
+
+// Funzione per generare risposte Perplexity
+async function generatePerplexityResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string
+): Promise<string> {
+  console.log(`🔍 Generando risposta Perplexity per ${personality.displayName}...`);
+  
+  const openai = new OpenAI({
+    apiKey: provider.apiKey,
+    baseURL: provider.baseUrl,
+  });
+
+  // Costruisci il prompt di sistema
+  let systemPrompt = personality.systemPrompt;
+  if (instructions) {
+    systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE ===\n${instructions}`;
+  }
+  if (attachmentsContext) {
+    systemPrompt += attachmentsContext;
+  }
+
+  // Costruisci i messaggi della conversazione
+  const messages: any[] = [
+    {
+      role: "system",
+      content: systemPrompt
+    }
+  ];
+
+  // Aggiungi cronologia conversazione (ultimi 10 messaggi)
+  const recentHistory = conversationHistory.slice(-10);
+  for (const msg of recentHistory) {
+    if (msg.senderId === personality.nameId) {
+      messages.push({
+        role: "assistant",
+        content: msg.content
+      });
+    } else {
+      const senderLabel = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
+      messages.push({
+        role: "user", 
+        content: `${senderLabel}: ${msg.content}`
+      });
+    }
+  }
+
+  // Aggiungi il nuovo messaggio
+  messages.push({
+    role: "user",
+    content: newMessage
+  });
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: provider.defaultModel || "llama-3.1-sonar-small-128k-online",
+      messages,
+      temperature: getPersonalityTemperature(personality.nameId),
+      max_tokens: 1000,
+      return_related_questions: false,
+      return_images: false,
+      search_recency_filter: "month"
+    });
+
+    if (!response.choices?.[0]?.message?.content) {
+      throw new Error("Risposta vuota dall'API Perplexity");
+    }
+
+    const aiResponse = response.choices[0].message.content;
+    console.log(`✅ Risposta Perplexity generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
+    
+    return aiResponse;
+  } catch (error) {
+    console.error(`❌ Errore chiamata Perplexity per ${personality.displayName}:`, error);
+    throw new Error(`Errore generazione risposta Perplexity: ${error.message}`);
+  }
 }

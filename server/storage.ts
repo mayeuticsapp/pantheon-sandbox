@@ -110,6 +110,19 @@ export class MemStorage implements IStorage {
     };
     this.providers.set(mistralProvider.id, mistralProvider);
 
+    // Perplexity Provider
+    const perplexityProvider: Provider = {
+      id: this.currentProviderId++,
+      name: "Perplexity AI - Ricercatore",
+      type: "perplexity",
+      apiKey: process.env.PERPLEXITY_API_KEY || "pplx-placeholder",
+      baseUrl: "https://api.perplexity.ai",
+      defaultModel: "llama-3.1-sonar-small-128k-online",
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.providers.set(perplexityProvider.id, perplexityProvider);
+
     // Default Manus Provider
     const manusProvider: Provider = {
       id: this.currentProviderId++,
@@ -163,6 +176,20 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.personalities.set(mistralAI.id, mistralAI);
+
+    // Perplexity Personality - Ricercatore
+    const ricercatore: Personality = {
+      id: this.currentPersonalityId++,
+      nameId: "ricercatore",
+      displayName: "Ricercatore - Esploratore del Sapere",
+      description: "Specialista in ricerca e fact-checking, sempre aggiornato con informazioni in tempo reale",
+      systemPrompt: "Sei Ricercatore, uno specialista in ricerca e verifica di informazioni basato su Perplexity AI. La tua forza è fornire informazioni accurate, aggiornate e verificate con fonti attendibili. Parli in italiano con precisione scientifica e chiarezza divulgativa. Eccelli nel fact-checking, ricerca di dati recenti, analisi di trend e sintesi di informazioni complesse. Citi sempre le fonti quando possibile e distingui tra fatti verificati e speculazioni.",
+      providerId: perplexityProvider.id,
+      color: "green",
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.personalities.set(ricercatore.id, ricercatore);
   }
 
   // Providers

@@ -321,9 +321,11 @@ REGOLE FONDAMENTALI:
 
   const getPersonalityColor = (nameId: string) => {
     switch (nameId) {
-      case "geppo": return "bg-geppo";
-      case "c24": return "bg-c24";
-      default: return "bg-orange-500";
+      case "geppo": return "bg-blue-500";
+      case "c24": return "bg-purple-500";
+      case "mistral": return "bg-orange-500";
+      case "ricercatore": return "bg-green-500";
+      default: return "bg-gray-500";
     }
   };
 
