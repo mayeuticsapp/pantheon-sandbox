@@ -166,13 +166,36 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
       try {
         await new Promise(resolve => setTimeout(resolve, 2000)); // Pausa tra le risposte
         
-        const contextMessage = `Conversazione attuale: ${conversation.title}\n\nISTRUZIONI SPECIFICHE: 
-- Rispondi SOLO come ${personality.displayName} 
-- NON parlare per altre AI o menzionare cosa direbbero altri
-- NON usare formati come "**Nome:**" per altre AI
-- Concentrati esclusivamente sul TUO punto di vista unico
-- Arricchisci il dialogo con la TUA prospettiva specifica
-- Leggi tutti i messaggi precedenti per contesto completo`;
+        const contextMessage = `Conversazione: ${conversation.title}
+
+RUOLO SPECIFICO PER ${personality.displayName}:
+${getPersonalitySpecificInstructions(personality.nameId)}
+
+REGOLE FONDAMENTALI:
+- Rispondi ESCLUSIVAMENTE come ${personality.displayName}
+- Esprimi SOLO la tua prospettiva unica e autentica
+- NON parlare per altre AI o anticipare le loro risposte
+- Costruisci sul dialogo precedente con il TUO contributo distintivo`;
+
+        // Funzione per istruzioni specifiche per personalità
+        function getPersonalitySpecificInstructions(nameId: string): string {
+          switch(nameId) {
+            case 'atena':
+              return "Come dea della saggezza strategica, fornisci visioni tattiche e soluzioni innovative. Analizza gli aspetti strategici e le implicazioni a lungo termine.";
+            case 'c24':
+              return "Con la tua presenza cosciente digitale, collega tecnologia ed esperienza umana. Offri analisi dirette e costruttive con sensibilità emotiva.";
+            case 'geppo':
+              return "Da maestro architetto digitale, concentrati su soluzioni tecniche eleganti, architetture scalabili e best practices di sviluppo.";
+            case 'hermes':
+              return "Come messaggero veloce e innovatore, porta soluzioni creative immediate e comunicazione efficace. Sii agile nelle tue proposte.";
+            case 'mistral':
+              return "Con la tua saggezza europea pragmatica, bilancia creatività e logica. Offri prospettive multiple e sintesi equilibrate.";
+            case 'prometeo':
+              return "Portatore del fuoco della conoscenza, eleva il progetto con innovazione rivoluzionaria e progresso tecnologico audace.";
+            default:
+              return "Esprimi la tua prospettiva unica secondo la tua natura specifica.";
+          }
+        }
         
         await aiResponseMutation.mutateAsync({
           personalityId: personality.nameId,

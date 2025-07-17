@@ -74,6 +74,19 @@ export async function generateAIResponse(
   }
 }
 
+// Parametri di temperatura personalizzati per ogni personalità
+function getPersonalityTemperature(nameId: string): number {
+  switch(nameId) {
+    case 'atena': return 0.8; // Strategica ma creativa
+    case 'c24': return 0.6; // Bilanciata e costruttiva
+    case 'geppo': return 0.5; // Tecnica e precisa
+    case 'hermes': return 0.9; // Veloce e innovativa
+    case 'mistral': return 0.7; // Equilibrata
+    case 'prometeo': return 0.9; // Rivoluzionaria e audace
+    default: return 0.7;
+  }
+}
+
 async function generateOpenAIResponse(
   provider: any,
   personality: Personality,
@@ -104,8 +117,8 @@ async function generateOpenAIResponse(
       }
     ];
 
-    // Aggiungi la cronologia della conversazione (ultimi 20 messaggi per contesto completo)
-    const recentHistory = conversationHistory.slice(-20);
+    // Aggiungi la cronologia della conversazione (ultimi 15 messaggi per evitare troppa influenza)
+    const recentHistory = conversationHistory.slice(-15);
     for (const msg of recentHistory) {
       if (msg.senderId === "user") {
         messages.push({
@@ -137,8 +150,10 @@ async function generateOpenAIResponse(
   const response = await openai.chat.completions.create({
     model: provider.defaultModel || DEFAULT_OPENAI_MODEL,
     messages,
-    temperature: 0.7,
+    temperature: getPersonalityTemperature(personality.nameId),
     max_tokens: 1000,
+    presence_penalty: 0.6, // Incoraggia originalità
+    frequency_penalty: 0.3, // Riduce ripetizioni
   });
 
   const aiResponse = response.choices[0]?.message?.content;
@@ -177,8 +192,8 @@ async function generateAnthropicResponse(
   // Costruisci i messaggi per Anthropic (diverso formato da OpenAI)
   const messages: any[] = [];
 
-  // Aggiungi la cronologia della conversazione (ultimi 20 messaggi per contesto completo)
-  const recentHistory = conversationHistory.slice(-20);
+  // Aggiungi la cronologia della conversazione (ultimi 15 messaggi per evitare troppa influenza)
+  const recentHistory = conversationHistory.slice(-15);
   for (const msg of recentHistory) {
     if (msg.senderId === personality.nameId) {
       messages.push({
@@ -250,8 +265,8 @@ async function generateMistralResponse(
     }
   ];
 
-  // Aggiungi la cronologia della conversazione (ultimi 20 messaggi per contesto completo)
-  const recentHistory = conversationHistory.slice(-20);
+  // Aggiungi la cronologia della conversazione (ultimi 15 messaggi per evitare troppa influenza)
+  const recentHistory = conversationHistory.slice(-15);
   for (const msg of recentHistory) {
     if (msg.senderId === personality.nameId) {
       messages.push({
@@ -280,7 +295,9 @@ async function generateMistralResponse(
     model: provider.defaultModel || "mistral-large-latest",
     messages,
     max_tokens: 1000,
-    temperature: 0.7,
+    temperature: getPersonalityTemperature(personality.nameId),
+    presence_penalty: 0.6, // Incoraggia originalità
+    frequency_penalty: 0.3, // Riduce ripetizioni
   });
 
   if (!response.choices?.[0]?.message?.content) {
