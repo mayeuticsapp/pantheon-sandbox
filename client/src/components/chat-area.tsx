@@ -466,7 +466,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                   // User message
                   <div className="flex justify-end">
                     <div className="max-w-md">
-                      <div className="bg-dark-primary text-white rounded-2xl rounded-br-md px-4 py-3">
+                      <div className="bg-gray-800 text-white rounded-2xl rounded-br-md px-4 py-3 border border-gray-600">
                         <p className="text-sm">{message.content}</p>
                       </div>
                       <div className="flex items-center justify-end mt-1 space-x-2">
