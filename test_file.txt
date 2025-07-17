@@ -1,0 +1,8 @@
+Ciao C24! Questo è un file di test per verificare il sistema di upload nel Pantheon.
+
+Contenuto del documento:
+- Test di funzionalità upload
+- Verifica integrazione AI
+- Sistema file condivisi
+
+Saluti dal team di sviluppo!

@@ -175,12 +175,12 @@ export default function FileUpload({
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Input
+            <input
               type="file"
               onChange={handleFileUpload}
               disabled={isUploading}
               accept=".txt,.md,.json,.pdf,.png,.jpg,.jpeg,.csv"
-              className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="w-full p-2 border border-gray-300 rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:border-gray-600 dark:bg-gray-700"
             />
           </div>
           {isUploading && (
