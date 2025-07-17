@@ -28,6 +28,7 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 - ✅ **PP (Ricercatore) Completamente Integrato** - Fix Perplexity API e pulsante verde funzionante
 - ✅ **Formato Messaggi Perplexity Risolto** - Logica semplificata per alternanza user/assistant
 - ✅ **Problema Ripetizioni PP Eliminato** - Contesto limitato nel system prompt per risposte uniche
+- ✅ **CRISIS PP RISOLTA** - Fix urgente dialoghi fittizi: PP ora risponde solo come se stesso
 - ✅ **Pantheon Completo Operativo** - Ordine alfabetico automatico: C24, Geppo, Mistral, Ricercatore
 - ✅ **4 AI Autentiche Collaborative** - Ogni AI sa di essere entità distinta con libera scelta
 - ✅ **Conversazione Aggiornata** - Titolo e partecipanti includono PP
