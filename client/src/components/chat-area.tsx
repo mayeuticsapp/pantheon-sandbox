@@ -464,7 +464,7 @@ REGOLE FONDAMENTALI:
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0 button-visible">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -657,7 +657,7 @@ REGOLE FONDAMENTALI:
                 <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setShowFileUpload(!showFileUpload)}
                     className="p-1.5 button-visible touch-target"
                     title="Allega file"
@@ -666,7 +666,7 @@ REGOLE FONDAMENTALI:
                   </Button>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
                     className="p-1.5 button-visible touch-target"
@@ -710,10 +710,10 @@ REGOLE FONDAMENTALI:
                 disabled={isTyping}
                 className={`text-xs button-visible mobile-button-optimized ${
                   personality.nameId === "geppo" 
-                    ? "border-geppo/20 bg-geppo/10 text-geppo hover:bg-geppo/20"
+                    ? "border-geppo/20 bg-geppo/20 text-geppo"
                     : personality.nameId === "c24"
-                    ? "border-c24/20 bg-c24/10 text-c24 hover:bg-c24/20"
-                    : "border-orange-500/20 bg-orange-500/10 text-orange-500 hover:bg-orange-500/20"
+                    ? "border-c24/20 bg-c24/20 text-c24"
+                    : "border-orange-500/20 bg-orange-500/20 text-orange-500"
                 }`}
               >
                 {personality.nameId === "geppo" ? "🏗️" : 

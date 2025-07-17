@@ -167,7 +167,7 @@ export default function PersonalityManager({ personalities, providers }: Persona
                   resetForm();
                   setIsEditing(false);
                 }}
-                className="bg-geppo hover:bg-blue-700"
+                className="button-visible"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Nuova Personalità
@@ -204,27 +204,27 @@ export default function PersonalityManager({ personalities, providers }: Persona
                       </div>
                       <div className="flex items-center mt-3 space-x-2">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleEdit(personality)}
-                          className="text-xs p-1 h-auto"
+                          className="text-xs p-1 h-auto button-visible"
                         >
                           <Edit className="h-3 w-3 mr-1" />
                           Modifica
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="text-xs p-1 h-auto"
+                          className="text-xs p-1 h-auto button-visible"
                         >
                           <TestTube className="h-3 w-3 mr-1" />
                           Test Chat
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleDelete(personality.id)}
-                          className="text-xs p-1 h-auto text-red-500 hover:text-red-700"
+                          className="text-xs p-1 h-auto text-red-500 bg-red-50 border-red-200"
                         >
                           <Trash2 className="h-3 w-3 mr-1" />
                           Elimina

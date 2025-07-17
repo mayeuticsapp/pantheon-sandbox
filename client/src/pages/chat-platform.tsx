@@ -161,7 +161,7 @@ export default function ChatPlatform() {
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "conversations"
                   ? "bg-geppo text-white shadow-md"
-                  : "text-gray-600 hover:bg-gray-100 border border-gray-200"
+                  : "text-gray-600 bg-gray-100 border border-gray-200"
               }`}
             >
               <Bot className="inline h-4 w-4" />
@@ -180,7 +180,7 @@ export default function ChatPlatform() {
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "personalities"
                   ? "bg-geppo text-white shadow-md"
-                  : "text-gray-600 hover:bg-gray-100 border border-gray-200"
+                  : "text-gray-600 bg-gray-100 border border-gray-200"
               }`}
             >
               <Users className="inline h-4 w-4" />
@@ -199,7 +199,7 @@ export default function ChatPlatform() {
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "providers"
                   ? "bg-geppo text-white shadow-md"
-                  : "text-gray-600 hover:bg-gray-100 border border-gray-200"
+                  : "text-gray-600 bg-gray-100 border border-gray-200"
               }`}
             >
               <Plug className="inline h-4 w-4" />

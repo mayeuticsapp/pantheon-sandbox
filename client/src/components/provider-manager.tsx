@@ -200,7 +200,7 @@ export default function ProviderManager({ providers }: ProviderManagerProps) {
                 resetForm();
                 setIsEditing(false);
               }}
-              className="bg-geppo hover:bg-blue-700"
+              className="button-visible"
             >
               <Plus className="h-4 w-4 mr-2" />
               Aggiungi Provider
@@ -257,27 +257,27 @@ export default function ProviderManager({ providers }: ProviderManagerProps) {
 
                 <div className="flex items-center mt-4 space-x-2">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => handleEdit(provider)}
-                    className="text-xs p-1 h-auto"
+                    className="text-xs p-1 h-auto button-visible"
                   >
                     <Edit className="h-3 w-3 mr-1" />
                     Modifica
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="text-xs p-1 h-auto"
+                    className="text-xs p-1 h-auto button-visible"
                   >
                     <TestTube className="h-3 w-3 mr-1" />
                     Test
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => handleDelete(provider.id)}
-                    className="text-xs p-1 h-auto text-red-500 hover:text-red-700"
+                    className="text-xs p-1 h-auto text-red-500 bg-red-50 border-red-200"
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
                     Rimuovi
@@ -378,7 +378,7 @@ export default function ProviderManager({ providers }: ProviderManagerProps) {
               <Button 
                 onClick={handleSubmit}
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="flex-1 bg-geppo hover:bg-blue-700"
+                className="flex-1 button-visible"
               >
                 {(createMutation.isPending || updateMutation.isPending) ? (
                   isEditing ? "Aggiornamento..." : "Creazione..."
@@ -395,7 +395,7 @@ export default function ProviderManager({ providers }: ProviderManagerProps) {
               <Button 
                 variant="outline"
                 onClick={resetForm}
-                className="w-full"
+                className="w-full button-visible"
               >
                 Annulla Modifica
               </Button>
