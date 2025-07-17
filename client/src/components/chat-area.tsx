@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Play, Pause, Square, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings, Paperclip } from "lucide-react";
+import { Send, Play, Pause, Square, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings, Paperclip, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -143,6 +143,57 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
         variant: "destructive",
       });
     }
+  };
+
+  // Fai rispondere tutti i partecipanti in ordine alfabetico
+  const handleAllParticipantsResponse = async () => {
+    if (!conversationId || !conversation?.participants) {
+      toast({
+        title: "Errore", 
+        description: "Nessuna conversazione attiva",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const sortedParticipants = [...conversation.participants].sort((a, b) => 
+      a.displayName.localeCompare(b.displayName)
+    );
+
+    setIsTyping(true);
+    
+    for (const personality of sortedParticipants) {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Pausa tra le risposte
+        
+        const contextMessage = `Conversazione attuale: ${conversation.title}\n\nIstruzioni: Rispondi dal tuo punto di vista e arricchisci il dialogo con le altre AI del Pantheon. Leggi tutti i messaggi precedenti per contesto completo.`;
+        
+        await aiResponseMutation.mutateAsync({
+          personalityId: personality.nameId,
+          message: contextMessage,
+          conversationId: conversationId,
+          conversationHistory: messages,
+        });
+        
+        // Aggiorna i messaggi dopo ogni risposta
+        await queryClient.invalidateQueries({
+          queryKey: ["/api/conversations", conversationId, "messages"]
+        });
+        
+        // Aspetta che i nuovi messaggi siano caricati
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (error) {
+        console.error(`Errore risposta ${personality.displayName}:`, error);
+      }
+    }
+    
+    setIsTyping(false);
+    
+    toast({
+      title: "Pantheon Completo",
+      description: "Tutte le AI hanno risposto in ordine alfabetico",
+    });
   };
 
   const handleAIResponse = async (personalityNameId?: string) => {
@@ -586,14 +637,25 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 </div>
               </div>
             </div>
-            <Button 
-              onClick={() => handleAIResponse()}
-              disabled={isTyping}
-              className="button-visible"
-            >
-              <Bot className="h-4 w-4 mr-2" />
-              Chiedi all'AI
-            </Button>
+            <div className="flex space-x-2">
+              <Button 
+                onClick={() => handleAIResponse()}
+                disabled={isTyping}
+                className="button-visible"
+              >
+                <Bot className="h-4 w-4 mr-2" />
+                Chiedi all'AI
+              </Button>
+              <Button 
+                onClick={() => handleAllParticipantsResponse()}
+                disabled={isTyping}
+                className="button-visible bg-purple-600 hover:bg-purple-700 text-white"
+                title="Fai rispondere tutti i partecipanti del Pantheon in ordine alfabetico"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Pantheon Completo
+              </Button>
+            </div>
           </div>
           
           {/* Quick Actions */}
