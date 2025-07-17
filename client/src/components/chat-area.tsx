@@ -462,7 +462,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
           ) : (
             messages.map((message) => (
               <div key={message.id} className="message-bubble">
-                {message.senderId === "user" ? (
+                {!message.senderId || message.senderId === "user" ? (
                   // User message
                   <div className="flex justify-end">
                     <div className="max-w-md">
@@ -473,7 +473,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                         <span className="text-xs text-gray-500">Tu</span>
                         <span className="text-xs text-gray-400">•</span>
                         <span className="text-xs text-gray-400">
-                          {formatTime(new Date(message.createdAt!))}
+                          {message.createdAt ? formatTime(new Date(message.createdAt)) : 'Ora sconosciuta'}
                         </span>
                       </div>
                     </div>
@@ -481,8 +481,8 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 ) : (
                   // AI message
                   <div className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 ${getPersonalityColor(message.senderId!)} rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0`}>
-                      {message.senderId!.charAt(0).toUpperCase()}
+                    <div className={`w-8 h-8 ${getPersonalityColor(message.senderId || 'unknown')} rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0`}>
+                      {(message.senderId || 'AI').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
                       <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
@@ -492,11 +492,11 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                         <span className={`text-xs font-medium ${
                           message.senderId === "geppo" ? "text-geppo" : "text-c24"
                         }`}>
-                          {getPersonalityName(message.senderId!)}
+                          {getPersonalityName(message.senderId || 'unknown')}
                         </span>
                         <span className="text-xs text-gray-400">•</span>
                         <span className="text-xs text-gray-400">
-                          {formatTime(new Date(message.createdAt!))}
+                          {message.createdAt ? formatTime(new Date(message.createdAt)) : 'Ora sconosciuta'}
                         </span>
                       </div>
                     </div>
