@@ -351,7 +351,7 @@ async function generatePerplexityResponse(
     systemPrompt += `\n\n=== CONTESTO RECENTE ===\n${lastFewMessages}\n\nEVITA di ripetere concetti già espressi.`;
   }
 
-  // Costruisci i messaggi della conversazione - Perplexity richiede alternanza user/assistant
+  // Costruisci i messaggi della conversazione - Include cronologia per contesto
   const messages: any[] = [
     {
       role: "system",
@@ -359,10 +359,19 @@ async function generatePerplexityResponse(
     }
   ];
 
-  // Per Perplexity, uso SOLO il messaggio corrente (nessuna cronologia per evitare errori alternanza)
+  // Per Perplexity, includi contesto nel messaggio invece che in cronologia separata
+  let contextualMessage = newMessage;
+  if (conversationHistory.length > 0) {
+    const context = conversationHistory.slice(-3).map(msg => {
+      const sender = msg.senderId === personality.nameId ? "Perplexity" : (msg.senderId || "Utente");
+      return `${sender}: ${msg.content}`;
+    }).join('\n');
+    contextualMessage = `CONTESTO CONVERSAZIONE:\n${context}\n\nDOMANDA: ${newMessage}`;
+  }
+  
   messages.push({
     role: "user",
-    content: newMessage
+    content: contextualMessage
   });
 
   try {
