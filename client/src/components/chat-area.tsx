@@ -657,19 +657,17 @@ REGOLE FONDAMENTALI:
                 <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={() => setShowFileUpload(!showFileUpload)}
-                    className="p-1.5 button-visible touch-target"
+                    className="p-1.5 bg-gray-600 hover:bg-gray-700 text-white border-gray-600 touch-target"
                     title="Allega file"
                   >
                     <Paperclip className="h-4 w-4" />
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                    className="p-1.5 button-visible touch-target"
+                    className="p-1.5 bg-green-600 hover:bg-green-700 text-white border-green-600 touch-target"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
@@ -680,7 +678,7 @@ REGOLE FONDAMENTALI:
               <Button 
                 onClick={() => handleAIResponse()}
                 disabled={isTyping}
-                className="button-visible mobile-button-optimized flex-1 sm:flex-none"
+                className="button-visible mobile-button-optimized flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-semibold"
               >
                 <Bot className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Chiedi all'AI</span>
@@ -689,7 +687,7 @@ REGOLE FONDAMENTALI:
               <Button 
                 onClick={() => handleAllParticipantsResponse()}
                 disabled={isTyping}
-                className="button-visible bg-purple-600 hover:bg-purple-700 text-white mobile-button-optimized flex-1 sm:flex-none"
+                className="button-visible bg-purple-600 hover:bg-purple-700 text-white mobile-button-optimized flex-1 sm:flex-none font-semibold"
                 title="Fai rispondere tutti i partecipanti del Pantheon in ordine alfabetico"
               >
                 <Users className="h-4 w-4 mr-2" />
@@ -708,12 +706,12 @@ REGOLE FONDAMENTALI:
                 size="sm"
                 onClick={() => handleAIResponse(personality.nameId)}
                 disabled={isTyping}
-                className={`text-xs button-visible mobile-button-optimized ${
+                className={`text-xs button-visible mobile-button-optimized font-semibold ${
                   personality.nameId === "geppo" 
-                    ? "border-geppo/20 bg-geppo/20 text-geppo"
+                    ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
                     : personality.nameId === "c24"
-                    ? "border-c24/20 bg-c24/20 text-c24"
-                    : "border-orange-500/20 bg-orange-500/20 text-orange-500"
+                    ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
+                    : "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
                 }`}
               >
                 {personality.nameId === "geppo" ? "🏗️" : 

@@ -160,8 +160,8 @@ export default function ChatPlatform() {
               }}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "conversations"
-                  ? "bg-geppo text-white shadow-md"
-                  : "text-gray-600 bg-gray-100 border border-gray-200"
+                  ? "bg-blue-600 text-white shadow-md font-semibold"
+                  : "text-gray-800 bg-gray-200 border border-gray-300 font-medium"
               }`}
             >
               <Bot className="inline h-4 w-4" />
@@ -179,8 +179,8 @@ export default function ChatPlatform() {
               }}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "personalities"
-                  ? "bg-geppo text-white shadow-md"
-                  : "text-gray-600 bg-gray-100 border border-gray-200"
+                  ? "bg-purple-600 text-white shadow-md font-semibold"
+                  : "text-gray-800 bg-gray-200 border border-gray-300 font-medium"
               }`}
             >
               <Users className="inline h-4 w-4" />
@@ -198,8 +198,8 @@ export default function ChatPlatform() {
               }}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "providers"
-                  ? "bg-geppo text-white shadow-md"
-                  : "text-gray-600 bg-gray-100 border border-gray-200"
+                  ? "bg-green-600 text-white shadow-md font-semibold"
+                  : "text-gray-800 bg-gray-200 border border-gray-300 font-medium"
               }`}
             >
               <Plug className="inline h-4 w-4" />
