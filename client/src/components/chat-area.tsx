@@ -576,7 +576,7 @@ REGOLE FONDAMENTALI:
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto scrollable-messages p-2 sm:p-4 space-y-3 sm:space-y-4">
+        <div className="flex-1 overflow-y-auto scrollable-messages p-4 space-y-4" style={{ scrollBehavior: 'smooth' }}>
           {/* File attachments display */}
           {attachments.length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -697,105 +697,104 @@ REGOLE FONDAMENTALI:
 
         {/* Input Area */}
         <div className="p-3 sm:p-4 border-t border-gray-200">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-end space-y-2 sm:space-y-0 sm:space-x-3">
-            <div className="flex-1">
-              <div className="relative">
-                <Textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Scrivi il tuo messaggio o una domanda per le AI..."
-                  className="pr-16 resize-y min-h-[44px] max-h-[200px] sm:max-h-[400px] text-sm sm:text-base"
-                  rows={1}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
-                  <Button
-                    size="sm"
-                    onClick={() => setShowFileUpload(!showFileUpload)}
-                    className="p-1.5 bg-gray-600 hover:bg-gray-700 text-white border-gray-600 touch-target"
-                    title="Allega file"
-                  >
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                    className="p-1.5 bg-green-600 hover:bg-green-700 text-white border-green-600 touch-target"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+          {/* Textarea principale - grande e prominente */}
+          <div className="mb-4">
+            <div className="relative">
+              <Textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Scrivi il tuo messaggio o una domanda per le AI..."
+                className="w-full pr-16 resize-y min-h-[120px] max-h-[300px] text-base leading-relaxed"
+                rows={5}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+              />
+              <div className="absolute right-2 top-2 flex space-x-1">
+                <Button
+                  size="sm"
+                  onClick={() => setShowFileUpload(!showFileUpload)}
+                  className="p-1.5 bg-gray-600 hover:bg-gray-700 text-white border-gray-600 touch-target"
+                  title="Allega file"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                  className="p-1.5 bg-green-600 hover:bg-green-700 text-white border-green-600 touch-target"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              <Button 
-                onClick={() => handleAIResponse()}
-                disabled={isTyping}
-                className="button-visible mobile-button-optimized flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-              >
-                <Bot className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Chiedi all'AI</span>
-                <span className="sm:hidden">AI</span>
-              </Button>
-              <Button 
-                onClick={() => handleAllParticipantsResponse()}
-                disabled={isTyping}
-                className="button-visible bg-purple-600 hover:bg-purple-700 text-white mobile-button-optimized flex-1 sm:flex-none font-semibold"
-                title="Fai rispondere tutti i partecipanti del Pantheon in ordine alfabetico"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Pantheon Completo</span>
-                <span className="sm:hidden">Pantheon</span>
-              </Button>
-              <Button 
-                onClick={() => handleOracleQuery()}
-                disabled={isTyping}
-                className="button-visible bg-amber-600 hover:bg-amber-700 text-white mobile-button-optimized flex-1 sm:flex-none font-semibold"
-                title="Evoca l'Oracolo del Pantheon per dati fattuali oggettivi"
-              >
-                <Bot className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Evoca Oracolo</span>
-                <span className="sm:hidden">Oracolo</span>
-              </Button>
-            </div>
+          </div>
+
+          {/* Pulsanti principali - compatti */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            <Button 
+              onClick={() => handleAIResponse()}
+              disabled={isTyping}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2"
+            >
+              <Bot className="h-4 w-4 mr-2" />
+              Chiedi all'AI
+            </Button>
+            <Button 
+              onClick={() => handleAllParticipantsResponse()}
+              disabled={isTyping}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2"
+              title="Fai rispondere tutti i partecipanti del Pantheon in ordine alfabetico"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Pantheon Completo
+            </Button>
+            <Button 
+              onClick={() => handleOracleQuery()}
+              disabled={isTyping}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2"
+              title="Evoca l'Oracolo del Pantheon per dati fattuali oggettivi"
+            >
+              <Bot className="h-4 w-4 mr-2" />
+              Evoca Oracolo
+            </Button>
           </div>
           
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2 mt-3">
-            {conversation?.participants.map((personality) => (
-              <Button
-                key={personality.nameId}
-                variant="outline"
-                size="sm"
-                onClick={() => handleAIResponse(personality.nameId)}
-                disabled={isTyping}
-                className={`text-xs button-visible mobile-button-optimized font-semibold ${
-                  personality.nameId === "geppo" 
-                    ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
-                    : personality.nameId === "c24"
-                    ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
-                    : personality.nameId === "mistral"
-                    ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
-                    : personality.nameId === "ricercatore"
-                    ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600"
-                    : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
-                }`}
-              >
-                {personality.nameId === "geppo" ? "🏗️" : 
-                 personality.nameId === "c24" ? "🎨" : 
-                 personality.nameId === "mistral" ? "🌟" :
-                 personality.nameId === "ricercatore" ? "🔮" : "🤖"} 
-                <span className="hidden sm:inline">Chiedi a {personality.displayName.split(" - ")[0]}</span>
-                <span className="sm:hidden">{personality.displayName.split(" - ")[0]}</span>
-              </Button>
-            ))}
-          </div>
+          {/* Quick Actions - Solo per AI individuali */}
+          {conversation?.participants && conversation.participants.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {conversation.participants.map((personality) => (
+                <Button
+                  key={personality.nameId}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAIResponse(personality.nameId)}
+                  disabled={isTyping}
+                  className={`text-xs font-semibold px-3 py-1 ${
+                    personality.nameId === "geppo" 
+                      ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
+                      : personality.nameId === "c24"
+                      ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
+                      : personality.nameId === "mistral"
+                      ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
+                      : personality.nameId === "ricercatore"
+                      ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600"
+                      : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
+                  }`}
+                >
+                  {personality.nameId === "geppo" ? "🏗️" : 
+                   personality.nameId === "c24" ? "🎨" : 
+                   personality.nameId === "mistral" ? "🌟" :
+                   personality.nameId === "ricercatore" ? "🔮" : "🤖"} 
+                  {personality.displayName.split(" - ")[0]}
+                </Button>
+              ))}
+            </div>
+          )}
 
           {/* Dialogue Settings Dialog */}
           <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
