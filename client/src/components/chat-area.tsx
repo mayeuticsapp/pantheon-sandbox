@@ -190,6 +190,8 @@ REGOLE FONDAMENTALI:
               return "Come messaggero veloce e innovatore, porta soluzioni creative immediate e comunicazione efficace. Sii agile nelle tue proposte.";
             case 'mistral':
               return "Con la tua saggezza europea pragmatica, bilancia creatività e logica. Offri prospettive multiple e sintesi equilibrate.";
+            case 'ricercatore':
+              return "Come guardiano del sapere, fornisci informazioni accurate e verificate. Usa la tua capacità di ricerca real-time per supportare i colleghi con dati concreti e fonti attendibili.";
             case 'prometeo':
               return "Portatore del fuoco della conoscenza, eleva il progetto con innovazione rivoluzionaria e progresso tecnologico audace.";
             default:
@@ -713,11 +715,17 @@ REGOLE FONDAMENTALI:
                     ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
                     : personality.nameId === "c24"
                     ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
-                    : "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
+                    : personality.nameId === "mistral"
+                    ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
+                    : personality.nameId === "ricercatore"
+                    ? "border-green-500 bg-green-500 text-white hover:bg-green-600"
+                    : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
                 }`}
               >
                 {personality.nameId === "geppo" ? "🏗️" : 
-                 personality.nameId === "c24" ? "🎨" : "🌟"} 
+                 personality.nameId === "c24" ? "🎨" : 
+                 personality.nameId === "mistral" ? "🌟" :
+                 personality.nameId === "ricercatore" ? "🔬" : "🤖"} 
                 <span className="hidden sm:inline">Chiedi a {personality.displayName.split(" - ")[0]}</span>
                 <span className="sm:hidden">{personality.displayName.split(" - ")[0]}</span>
               </Button>
