@@ -341,13 +341,13 @@ REGOLE FONDAMENTALI:
 
   if (!conversationId) {
     return (
-      <Card className="h-[calc(100vh-180px)]">
-        <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center text-gray-500 space-y-6">
-            <Bot className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+      <Card className="h-[calc(100vh-140px)] sm:h-[calc(100vh-180px)]">
+        <CardContent className="flex items-center justify-center h-full p-4">
+          <div className="text-center text-gray-500 space-y-4 sm:space-y-6">
+            <Bot className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-gray-300" />
             <div>
-              <h3 className="text-lg font-medium mb-2 text-visible">Seleziona una conversazione</h3>
-              <p className="text-sm text-visible">Scegli una conversazione dalla lista o creane una nuova per iniziare a chattare con le AI</p>
+              <h3 className="text-base sm:text-lg font-medium mb-2 text-visible">Seleziona una conversazione</h3>
+              <p className="text-sm text-visible px-2">Scegli una conversazione dalla lista o creane una nuova per iniziare a chattare con le AI</p>
             </div>
             <div className="pt-4">
               <Button 
@@ -361,7 +361,7 @@ REGOLE FONDAMENTALI:
                 className="button-visible"
                 size="lg"
               >
-                <Plus className="h-5 w-5 mr-2" />
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Crea Nuova Conversazione
               </Button>
             </div>
@@ -372,44 +372,45 @@ REGOLE FONDAMENTALI:
   }
 
   return (
-    <Card className="h-[calc(100vh-180px)]">
+    <Card className="h-[calc(100vh-140px)] sm:h-[calc(100vh-180px)]">
       <CardContent className="p-0 h-full flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-3 sm:p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="flex -space-x-2">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              <div className="flex -space-x-1 sm:-space-x-2">
                 {conversation?.participants.map((participant) => (
                   <div
                     key={participant.nameId}
-                    className={`w-10 h-10 ${getPersonalityColor(participant.nameId)} rounded-full flex items-center justify-center text-white font-medium ring-2 ring-white`}
+                    className={`w-8 h-8 sm:w-10 sm:h-10 ${getPersonalityColor(participant.nameId)} rounded-full flex items-center justify-center text-white font-medium ring-2 ring-white text-sm sm:text-base`}
                   >
                     {participant.nameId.charAt(0).toUpperCase()}
                   </div>
                 ))}
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-visible">{conversation?.title}</h3>
-                <p className="text-sm text-gray-500">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm sm:text-lg font-semibold text-visible truncate">{conversation?.title}</h3>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">
                   {conversation?.participants.map(p => p.displayName).join(" • ")}
                 </p>
                 {conversation?.instructions && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    📋 Istruzioni: {conversation.instructions.slice(0, 60)}...
+                  <p className="text-xs text-blue-600 mt-1 truncate">
+                    📋 {conversation.instructions.slice(0, 40)}...
                   </p>
                 )}
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
               {dialogueMode === 'stopped' && (
                 <Button 
                   size="sm" 
                   onClick={startDialogue}
-                  className="button-visible"
+                  className="button-visible text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  <Play className="h-4 w-4 mr-1" />
-                  Avvia Dialogo
+                  <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  <span className="hidden sm:inline">Avvia</span>
+                  <span className="sm:hidden">▶</span>
                 </Button>
               )}
               
@@ -418,20 +419,22 @@ REGOLE FONDAMENTALI:
                   <Button 
                     size="sm" 
                     onClick={pauseDialogue}
-                    className="button-visible"
+                    className="button-visible text-xs sm:text-sm px-2 sm:px-3"
                     variant="outline"
                   >
-                    <Pause className="h-4 w-4 mr-1" />
-                    Pausa
+                    <Pause className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden sm:inline">Pausa</span>
+                    <span className="sm:hidden">⏸</span>
                   </Button>
                   <Button 
                     size="sm" 
                     onClick={stopDialogue}
-                    className="button-visible"
+                    className="button-visible text-xs sm:text-sm px-2 sm:px-3"
                     variant="destructive"
                   >
-                    <Square className="h-4 w-4 mr-1" />
-                    Stop
+                    <Square className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden sm:inline">Stop</span>
+                    <span className="sm:hidden">⏹</span>
                   </Button>
                 </>
               )}
@@ -441,32 +444,38 @@ REGOLE FONDAMENTALI:
                   <Button 
                     size="sm" 
                     onClick={resumeDialogue}
-                    className="button-visible"
+                    className="button-visible text-xs sm:text-sm px-2 sm:px-3"
                   >
-                    <Play className="h-4 w-4 mr-1" />
-                    Riprendi
+                    <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden sm:inline">Riprendi</span>
+                    <span className="sm:hidden">▶</span>
                   </Button>
                   <Button 
                     size="sm" 
                     onClick={stopDialogue}
-                    className="button-visible"
+                    className="button-visible text-xs sm:text-sm px-2 sm:px-3"
                     variant="destructive"
                   >
-                    <Square className="h-4 w-4 mr-1" />
-                    Stop
+                    <Square className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden sm:inline">Stop</span>
+                    <span className="sm:hidden">⏹</span>
                   </Button>
                 </>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="button-visible">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
                     <Settings className="h-4 w-4 mr-2" />
                     Impostazioni Dialogo
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowFileUpload(true)}>
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    Carica File
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     const conversationText = `${conversation?.title}\n\n${messages.map(m => 
@@ -508,7 +517,7 @@ REGOLE FONDAMENTALI:
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto scrollable-messages p-2 sm:p-4 space-y-3 sm:space-y-4">
           {/* File attachments display */}
           {attachments.length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -521,8 +530,8 @@ REGOLE FONDAMENTALI:
                        attachment.mimeType.startsWith("image/") ? "🖼️" :
                        attachment.mimeType.includes("pdf") ? "📕" : "📎"}
                     </span>
-                    <span className="font-medium">{attachment.originalName}</span>
-                    <span className="ml-2 text-xs text-blue-500">
+                    <span className="font-medium truncate">{attachment.originalName}</span>
+                    <span className="ml-2 text-xs text-blue-500 flex-shrink-0">
                       ({(attachment.size / 1024).toFixed(1)} KB)
                     </span>
                   </div>
@@ -535,8 +544,8 @@ REGOLE FONDAMENTALI:
           )}
 
           {messages.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <p className="text-sm">Nessun messaggio in questa conversazione</p>
+            <div className="text-center text-gray-500 py-6 sm:py-8 px-4">
+              <p className="responsive-text-sm">Nessun messaggio in questa conversazione</p>
               <p className="text-xs mt-1">Inizia scrivendo un messaggio o attivando l'AI</p>
             </div>
           ) : (
@@ -545,9 +554,9 @@ REGOLE FONDAMENTALI:
                 {!message.senderId || message.senderId === "user" ? (
                   // User message
                   <div className="flex justify-end">
-                    <div className="max-w-md">
-                      <div className="bg-gray-800 text-white rounded-2xl rounded-br-md px-4 py-3 border border-gray-600">
-                        <p className="text-sm">{message.content}</p>
+                    <div className="max-w-xs sm:max-w-md mobile-message-bubble">
+                      <div className="bg-gray-800 text-white rounded-2xl rounded-br-md px-3 sm:px-4 py-2 sm:py-3 border border-gray-600">
+                        <p className="text-sm sm:text-base message-content">{message.content}</p>
                       </div>
                       <div className="flex items-center justify-end mt-1 space-x-2">
                         <span className="text-xs text-gray-500">Tu</span>
@@ -560,17 +569,18 @@ REGOLE FONDAMENTALI:
                   </div>
                 ) : (
                   // AI message
-                  <div className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 ${getPersonalityColor(message.senderId || 'unknown')} rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0`}>
+                  <div className="flex items-start space-x-2 sm:space-x-3">
+                    <div className={`w-7 h-7 sm:w-8 sm:h-8 ${getPersonalityColor(message.senderId || 'unknown')} rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0`}>
                       {(message.senderId || 'AI').charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1">
-                      <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
-                        <p className="text-sm text-dark-primary whitespace-pre-wrap">{message.content}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-gray-100 rounded-2xl rounded-tl-md px-3 sm:px-4 py-2 sm:py-3">
+                        <p className="text-sm sm:text-base text-dark-primary whitespace-pre-wrap message-content">{message.content}</p>
                       </div>
                       <div className="flex items-center mt-1 space-x-2">
                         <span className={`text-xs font-medium ${
-                          message.senderId === "geppo" ? "text-geppo" : "text-c24"
+                          message.senderId === "geppo" ? "text-geppo" : 
+                          message.senderId === "c24" ? "text-c24" : "text-orange-500"
                         }`}>
                           {getPersonalityName(message.senderId || 'unknown')}
                         </span>
@@ -627,15 +637,15 @@ REGOLE FONDAMENTALI:
         )}
 
         {/* Input Area */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-end space-x-3">
+        <div className="p-3 sm:p-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end space-y-2 sm:space-y-0 sm:space-x-3">
             <div className="flex-1">
               <div className="relative">
                 <Textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Scrivi il tuo messaggio o una domanda per le AI..."
-                  className="pr-16 resize-y min-h-[40px] max-h-[400px]"
+                  className="pr-16 resize-y min-h-[44px] max-h-[200px] sm:max-h-[400px] text-sm sm:text-base"
                   rows={1}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -644,12 +654,12 @@ REGOLE FONDAMENTALI:
                     }
                   }}
                 />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => setShowFileUpload(!showFileUpload)}
-                    className="p-1.5 button-visible"
+                    className="p-1.5 button-visible touch-target"
                     title="Allega file"
                   >
                     <Paperclip className="h-4 w-4" />
@@ -659,30 +669,32 @@ REGOLE FONDAMENTALI:
                     variant="ghost"
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                    className="p-1.5 button-visible"
+                    className="p-1.5 button-visible touch-target"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               <Button 
                 onClick={() => handleAIResponse()}
                 disabled={isTyping}
-                className="button-visible"
+                className="button-visible mobile-button-optimized flex-1 sm:flex-none"
               >
                 <Bot className="h-4 w-4 mr-2" />
-                Chiedi all'AI
+                <span className="hidden sm:inline">Chiedi all'AI</span>
+                <span className="sm:hidden">AI</span>
               </Button>
               <Button 
                 onClick={() => handleAllParticipantsResponse()}
                 disabled={isTyping}
-                className="button-visible bg-purple-600 hover:bg-purple-700 text-white"
+                className="button-visible bg-purple-600 hover:bg-purple-700 text-white mobile-button-optimized flex-1 sm:flex-none"
                 title="Fai rispondere tutti i partecipanti del Pantheon in ordine alfabetico"
               >
                 <Users className="h-4 w-4 mr-2" />
-                Pantheon Completo
+                <span className="hidden sm:inline">Pantheon Completo</span>
+                <span className="sm:hidden">Pantheon</span>
               </Button>
             </div>
           </div>
@@ -696,16 +708,20 @@ REGOLE FONDAMENTALI:
                 size="sm"
                 onClick={() => handleAIResponse(personality.nameId)}
                 disabled={isTyping}
-                className={`text-xs button-visible ${
+                className={`text-xs button-visible mobile-button-optimized ${
                   personality.nameId === "geppo" 
                     ? "border-geppo/20 bg-geppo/10 text-geppo hover:bg-geppo/20"
-                    : "border-c24/20 bg-c24/10 text-c24 hover:bg-c24/20"
+                    : personality.nameId === "c24"
+                    ? "border-c24/20 bg-c24/10 text-c24 hover:bg-c24/20"
+                    : "border-orange-500/20 bg-orange-500/10 text-orange-500 hover:bg-orange-500/20"
                 }`}
               >
-                {personality.nameId === "geppo" ? "🏗️" : "🎨"} Chiedi a {personality.displayName.split(" - ")[0]}
+                {personality.nameId === "geppo" ? "🏗️" : 
+                 personality.nameId === "c24" ? "🎨" : "🌟"} 
+                <span className="hidden sm:inline">Chiedi a {personality.displayName.split(" - ")[0]}</span>
+                <span className="sm:hidden">{personality.displayName.split(" - ")[0]}</span>
               </Button>
             ))}
-
           </div>
 
           {/* Dialogue Settings Dialog */}

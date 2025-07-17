@@ -210,4 +210,74 @@
   .animate-pulse-soft {
     animation: pulse 3s ease-in-out infinite;
   }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    .mobile-text-optimized {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+    
+    .mobile-button-optimized {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    
+    .mobile-compact-spacing {
+      padding: 0.5rem;
+    }
+    
+    .mobile-message-bubble {
+      max-width: 95%;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  /* Better touch targets for mobile */
+  @media (max-width: 768px) {
+    button {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    .touch-target {
+      padding: 0.75rem;
+    }
+  }
+
+  /* Improved readability */
+  .message-content {
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Scrollable container optimization */
+  .scrollable-messages {
+    scroll-behavior: smooth;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Responsive text sizing */
+  .responsive-text-sm {
+    font-size: 0.75rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-text-sm {
+      font-size: 0.875rem;
+    }
+  }
+
+  .responsive-text-base {
+    font-size: 0.875rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-text-base {
+      font-size: 1rem;
+    }
+  }
 }

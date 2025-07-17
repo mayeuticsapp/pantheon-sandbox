@@ -33,7 +33,7 @@ export default function ChatPlatform() {
     switch (activeTab) {
       case "conversations":
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
             <div className="lg:col-span-1">
               <ConversationList
                 conversations={conversations}
@@ -63,21 +63,25 @@ export default function ChatPlatform() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-geppo to-c24 rounded-lg flex items-center justify-center">
-                  <Bot className="text-white text-lg" />
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-14 md:h-16">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-geppo to-c24 rounded-lg flex items-center justify-center">
+                  <Bot className="text-white text-sm md:text-lg" />
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-visible">AI Chat Platform</h1>
-                  <p className="text-xs text-gray-500">Gestione Conversazioni Intelligenti</p>
+                <div className="hidden sm:block">
+                  <h1 className="text-lg md:text-xl font-bold text-visible">AI Chat Platform</h1>
+                  <p className="text-xs text-gray-500 hidden md:block">Gestione Conversazioni Intelligenti</p>
+                </div>
+                <div className="sm:hidden">
+                  <h1 className="text-base font-bold text-visible">Pantheon</h1>
                 </div>
               </div>
             </div>
             
-            <nav className="flex space-x-1">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex space-x-1">
               <button
                 onClick={() => {
                   setActiveTab("conversations");
@@ -138,7 +142,7 @@ export default function ChatPlatform() {
             </nav>
 
             <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-500">
+              <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-500">
                 <div className="w-2 h-2 bg-connection rounded-full animate-pulse-soft"></div>
                 <span>Sistema Attivo</span>
               </div>
@@ -147,47 +151,71 @@ export default function ChatPlatform() {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden px-4 pb-3">
+        <div className="md:hidden px-2 pb-3 border-t border-gray-100">
           <div className="flex space-x-1">
             <button
-              onClick={() => setActiveTab("conversations")}
-              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg ${
+              onClick={() => {
+                setActiveTab("conversations");
+                setSelectedConversationId(null);
+              }}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "conversations"
-                  ? "bg-geppo text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-geppo text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-100 border border-gray-200"
               }`}
             >
               <Bot className="inline h-4 w-4" />
               <span className="ml-1">Chat</span>
+              <span className={`px-1 py-0.5 rounded text-xs ml-1 ${
+                activeTab === "conversations" ? "bg-white/20" : "bg-gray-200"
+              }`}>
+                {conversations.length}
+              </span>
             </button>
             <button
-              onClick={() => setActiveTab("personalities")}
-              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg ${
+              onClick={() => {
+                setActiveTab("personalities");
+                setSelectedConversationId(null);
+              }}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "personalities"
-                  ? "bg-geppo text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-geppo text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-100 border border-gray-200"
               }`}
             >
               <Users className="inline h-4 w-4" />
               <span className="ml-1">AI</span>
+              <span className={`px-1 py-0.5 rounded text-xs ml-1 ${
+                activeTab === "personalities" ? "bg-white/20" : "bg-gray-200"
+              }`}>
+                {personalities.length}
+              </span>
             </button>
             <button
-              onClick={() => setActiveTab("providers")}
-              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg ${
+              onClick={() => {
+                setActiveTab("providers");
+                setSelectedConversationId(null);
+              }}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === "providers"
-                  ? "bg-geppo text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-geppo text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-100 border border-gray-200"
               }`}
             >
               <Plug className="inline h-4 w-4" />
               <span className="ml-1">API</span>
+              <span className={`px-1 py-0.5 rounded text-xs ml-1 ${
+                activeTab === "providers" ? "bg-white/20" : "bg-gray-200"
+              }`}>
+                {providers.length}
+              </span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6">
         {renderTabContent()}
       </main>
     </div>

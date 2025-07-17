@@ -100,18 +100,19 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-3 sm:p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-visible">Conversazioni Attive</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-visible">Conversazioni Attive</h2>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
                 <Button 
                   size="sm" 
-                  className="button-visible"
+                  className="button-visible text-xs sm:text-sm px-2 sm:px-3"
                   data-testid="create-conversation-button"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Nuova Conversazione
+                  <span className="hidden sm:inline">Nuova Conversazione</span>
+                  <span className="sm:hidden">Nuova</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -176,8 +177,8 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
         
         <div className="divide-y divide-gray-100">
           {conversations.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <div className="p-6 sm:p-8 text-center text-gray-500">
+              <MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-4 text-gray-300" />
               <p className="text-sm">Nessuna conversazione attiva</p>
               <p className="text-xs mt-1">Crea una nuova conversazione per iniziare</p>
             </div>
@@ -186,16 +187,16 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
               <div
                 key={conversation.id}
                 onClick={() => onSelect(conversation.id)}
-                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                className={`p-3 sm:p-4 hover:bg-gray-50 cursor-pointer transition-colors touch-target ${
                   selectedId === conversation.id ? "bg-blue-50 border-r-2 border-geppo" : ""
                 }`}
               >
-                <div className="flex items-start space-x-3">
-                  <div className="flex -space-x-2">
+                <div className="flex items-start space-x-2 sm:space-x-3">
+                  <div className="flex -space-x-1 sm:-space-x-2">
                     {conversation.participants.map((participant) => (
                       <div
                         key={participant.nameId}
-                        className={`w-8 h-8 ${getPersonalityColor(participant.nameId)} rounded-full flex items-center justify-center text-white text-xs font-medium ring-2 ring-white`}
+                        className={`w-7 h-7 sm:w-8 sm:h-8 ${getPersonalityColor(participant.nameId)} rounded-full flex items-center justify-center text-white text-xs font-medium ring-2 ring-white`}
                       >
                         {participant.nameId.charAt(0).toUpperCase()}
                       </div>
@@ -203,14 +204,14 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-dark-primary truncate">
+                      <h3 className="text-sm sm:text-base font-medium text-dark-primary truncate">
                         {conversation.title}
                       </h3>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
                         {conversation.updatedAt && formatTimeAgo(new Date(conversation.updatedAt))}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 truncate mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 truncate mt-1">
                       {conversation.lastMessage 
                         ? `${conversation.lastMessage.senderId === "user" ? "Tu" : conversation.lastMessage.senderId}: ${conversation.lastMessage.content}`
                         : "Nessun messaggio"
