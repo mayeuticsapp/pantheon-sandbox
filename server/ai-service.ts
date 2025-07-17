@@ -327,9 +327,9 @@ async function generatePerplexityResponse(
 ): Promise<string> {
   console.log(`🔍 Generando risposta Perplexity per ${personality.displayName}...`);
   
-  const openai = new OpenAI({
+  const perplexity = new OpenAI({
     apiKey: provider.apiKey,
-    baseURL: provider.baseUrl,
+    baseURL: provider.baseUrl || "https://api.perplexity.ai",
   });
 
   // Costruisci il prompt di sistema con context minimo
@@ -366,7 +366,7 @@ async function generatePerplexityResponse(
   });
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await perplexity.chat.completions.create({
       model: provider.defaultModel || "llama-3.1-sonar-small-128k-online",
       messages,
       temperature: getPersonalityTemperature(personality.nameId),

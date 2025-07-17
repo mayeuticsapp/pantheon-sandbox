@@ -25,10 +25,10 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 ## Recent Progress (July 17, 2025)
 
 ### PANTHEON COMPLETO - 4 AI OPERATIVE ✅🎉
-- ✅ **PP (Ricercatore) Completamente Integrato** - Fix Perplexity API e pulsante verde funzionante
-- ✅ **Formato Messaggi Perplexity Risolto** - Logica semplificata per alternanza user/assistant
-- ✅ **Problema Ripetizioni PP Eliminato** - Contesto limitato nel system prompt per risposte uniche
-- ✅ **CRISIS PP RISOLTA** - Fix urgente dialoghi fittizi: PP ora risponde solo come se stesso
+- ✅ **Perplexity API Autentica Attivata** - Fix routing provider, ora usa vera API Perplexity
+- ✅ **Ricerche Real-Time Funzionanti** - Notizie aggiornate con citazioni autentiche
+- ✅ **System Prompt Semplificato** - "Posso fare ricerche sul web, rispondo dando la mia conoscenza"
+- ✅ **Nome Aggiornato** - "Perplexity" invece di "PP/Ricercatore"
 - ✅ **Pantheon Completo Operativo** - Ordine alfabetico automatico: C24, Geppo, Mistral, Ricercatore
 - ✅ **4 AI Autentiche Collaborative** - Ogni AI sa di essere entità distinta con libera scelta
 - ✅ **Conversazione Aggiornata** - Titolo e partecipanti includono PP
