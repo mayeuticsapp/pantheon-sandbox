@@ -349,24 +349,11 @@ async function generatePerplexityResponse(
     }
   ];
 
-  // Per Perplexity, semplifico drasticamente: solo contesto + messaggio corrente
-  const contextSummary = conversationHistory.slice(-3).map(msg => {
-    const sender = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
-    return `${sender}: ${msg.content.substring(0, 200)}...`;
-  }).join('\n');
-
-  // Sempre user → assistant alternati
-  if (contextSummary) {
-    messages.push({
-      role: "user",
-      content: `Contesto conversazione:\n${contextSummary}\n\nNuova richiesta: ${newMessage}`
-    });
-  } else {
-    messages.push({
-      role: "user",
-      content: newMessage
-    });
-  }
+  // Per Perplexity, uso SOLO il messaggio corrente (nessuna cronologia per evitare errori alternanza)
+  messages.push({
+    role: "user",
+    content: newMessage
+  });
 
   try {
     const response = await openai.chat.completions.create({
