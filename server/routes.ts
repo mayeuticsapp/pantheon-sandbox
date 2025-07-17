@@ -334,6 +334,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add personality to conversation
+  app.post("/api/conversations/:id/participants", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { personalityId } = req.body;
+
+      if (!personalityId) {
+        return res.status(400).json({ error: "personalityId richiesto" });
+      }
+
+      // Verifica che la conversazione esista
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversazione non trovata" });
+      }
+
+      // Verifica che la personalità esista
+      const personality = await storage.getPersonality(personalityId);
+      if (!personality) {
+        return res.status(404).json({ error: "Personalità non trovata" });
+      }
+
+      // Controlla se la personalità è già presente
+      const isAlreadyParticipant = conversation.participants.some(p => p.id === personalityId);
+      if (isAlreadyParticipant) {
+        return res.status(409).json({ error: "Personalità già presente nella conversazione" });
+      }
+
+      // Aggiungi la personalità alla conversazione
+      const updatedParticipants = [...conversation.participants.map(p => p.id), personalityId];
+      const updatedConversation = await storage.updateConversation(conversationId, {
+        participantIds: updatedParticipants
+      });
+
+      res.json(updatedConversation);
+    } catch (error) {
+      console.error("Errore aggiunta personalità:", error);
+      res.status(500).json({ error: "Errore durante l'aggiunta della personalità" });
+    }
+  });
+
+  // Remove personality from conversation
+  app.delete("/api/conversations/:id/participants/:personalityId", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const personalityId = parseInt(req.params.personalityId);
+
+      // Verifica che la conversazione esista
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversazione non trovata" });
+      }
+
+      // Rimuovi la personalità dalla conversazione
+      const updatedParticipants = conversation.participants
+        .filter(p => p.id !== personalityId)
+        .map(p => p.id);
+      
+      const updatedConversation = await storage.updateConversation(conversationId, {
+        participantIds: updatedParticipants
+      });
+
+      res.json(updatedConversation);
+    } catch (error) {
+      console.error("Errore rimozione personalità:", error);
+      res.status(500).json({ error: "Errore durante la rimozione della personalità" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

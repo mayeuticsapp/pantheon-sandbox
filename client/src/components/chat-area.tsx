@@ -25,10 +25,53 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [dialogueDelay, setDialogueDelay] = useState(8000); // 8 secondi tra i messaggi
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
+  const [showParticipantManager, setShowParticipantManager] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Add personality to conversation mutation
+  const addParticipantMutation = useMutation({
+    mutationFn: (personalityId: number) => 
+      fetch(`/api/conversations/${conversationId}/participants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personalityId })
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({ title: "Personalità aggiunta", description: "La personalità è stata aggiunta alla conversazione" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Errore", 
+        description: error.message || "Impossibile aggiungere la personalità",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // Remove personality from conversation mutation  
+  const removeParticipantMutation = useMutation({
+    mutationFn: (personalityId: number) =>
+      fetch(`/api/conversations/${conversationId}/participants/${personalityId}`, {
+        method: 'DELETE'
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({ title: "Personalità rimossa", description: "La personalità è stata rimossa dalla conversazione" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Impossibile rimuovere la personalità",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Get conversation details
   const { data: conversation } = useQuery({
@@ -614,7 +657,16 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 {personality.nameId === "geppo" ? "🏗️" : "🎨"} Chiedi a {personality.displayName.split(" - ")[0]}
               </Button>
             ))}
-
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowParticipantManager(true)}
+              className="text-xs button-visible border-blue-500/20 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20"
+              title="Gestisci partecipanti"
+            >
+              + Personalità
+            </Button>
           </div>
 
           {/* Dialogue Settings Dialog */}
@@ -653,6 +705,91 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+                    Chiudi
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Participant Manager Dialog */}
+          <Dialog open={showParticipantManager} onOpenChange={setShowParticipantManager}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Gestisci Personalità nella Conversazione</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                
+                {/* Current participants */}
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Personalità Attuali ({conversation?.participants?.length || 0})</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {conversation?.participants?.map((personality) => (
+                      <div key={personality.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-6 h-6 ${getPersonalityColor(personality.nameId)} rounded-full flex items-center justify-center text-white text-xs font-medium`}>
+                            {personality.nameId.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-medium">{personality.displayName}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeParticipantMutation.mutate(personality.id)}
+                          disabled={removeParticipantMutation.isPending}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {(!conversation?.participants || conversation.participants.length === 0) && (
+                      <p className="text-sm text-gray-500 italic">Nessuna personalità nella conversazione</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Available personalities to add */}
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Aggiungi Personalità</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {personalities
+                      .filter(p => !conversation?.participants?.some(cp => cp.id === p.id))
+                      .map((personality) => (
+                        <div key={personality.id} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-6 h-6 ${getPersonalityColor(personality.nameId)} rounded-full flex items-center justify-center text-white text-xs font-medium`}>
+                              {personality.nameId.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm font-medium">{personality.displayName}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => addParticipantMutation.mutate(personality.id)}
+                            disabled={addParticipantMutation.isPending}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    {personalities.filter(p => !conversation?.participants?.some(cp => cp.id === p.id)).length === 0 && (
+                      <p className="text-sm text-gray-500 italic">Tutte le personalità sono già nella conversazione</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-1">💡 Suggerimento:</h4>
+                  <p className="text-sm text-blue-800">
+                    Puoi aggiungere o rimuovere personalità in qualsiasi momento durante la conversazione. 
+                    Le nuove personalità vedranno tutto lo storico dei messaggi precedenti.
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={() => setShowParticipantManager(false)}>
                     Chiudi
                   </Button>
                 </div>
