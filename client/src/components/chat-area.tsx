@@ -286,7 +286,35 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     switch (nameId) {
       case "geppo": return "bg-geppo";
       case "c24": return "bg-c24";
-      default: return "bg-orange-500";
+      case "mistral": return "bg-purple-600";
+      case "atena": return "bg-indigo-600";
+      case "hermes": return "bg-orange-600";
+      case "prometeo": return "bg-red-600";
+      default: return "bg-gray-600";
+    }
+  };
+
+  const getPersonalityIcon = (nameId: string) => {
+    switch (nameId) {
+      case "geppo": return "🏗️";
+      case "c24": return "🎨";
+      case "mistral": return "⚡";
+      case "atena": return "🦉";
+      case "hermes": return "💨";
+      case "prometeo": return "🔥";
+      default: return "🤖";
+    }
+  };
+
+  const getPersonalityButtonStyle = (nameId: string) => {
+    switch (nameId) {
+      case "geppo": return "border-geppo/20 bg-geppo/10 text-geppo hover:bg-geppo/20";
+      case "c24": return "border-c24/20 bg-c24/10 text-c24 hover:bg-c24/20";
+      case "mistral": return "border-purple-500/20 bg-purple-500/10 text-purple-600 hover:bg-purple-500/20";
+      case "atena": return "border-indigo-500/20 bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20";
+      case "hermes": return "border-orange-500/20 bg-orange-500/10 text-orange-600 hover:bg-orange-500/20";
+      case "prometeo": return "border-red-500/20 bg-red-500/10 text-red-600 hover:bg-red-500/20";
+      default: return "border-gray-500/20 bg-gray-500/10 text-gray-600 hover:bg-gray-500/20";
     }
   };
 
@@ -648,13 +676,9 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                 size="sm"
                 onClick={() => handleAIResponse(personality.nameId)}
                 disabled={isTyping}
-                className={`text-xs button-visible ${
-                  personality.nameId === "geppo" 
-                    ? "border-geppo/20 bg-geppo/10 text-geppo hover:bg-geppo/20"
-                    : "border-c24/20 bg-c24/10 text-c24 hover:bg-c24/20"
-                }`}
+                className={`text-xs button-visible ${getPersonalityButtonStyle(personality.nameId)}`}
               >
-                {personality.nameId === "geppo" ? "🏗️" : "🎨"} Chiedi a {personality.displayName.split(" - ")[0]}
+                {getPersonalityIcon(personality.nameId)} Chiedi a {personality.displayName.split(" - ")[0]}
               </Button>
             ))}
             

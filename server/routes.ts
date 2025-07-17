@@ -218,7 +218,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🎭 Richiesta chat per ${personalityId}: "${message.substring(0, 50)}..."`);
       
-      const personality = await storage.getPersonalityByNameId(personalityId);
+      const personality = typeof personalityId === 'string' 
+        ? await storage.getPersonalityByNameId(personalityId)
+        : await storage.getPersonality(personalityId);
       if (!personality) {
         return res.status(404).json({ message: "Personality not found" });
       }

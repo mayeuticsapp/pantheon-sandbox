@@ -48,6 +48,8 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 - ✅ **Interface di gestione** - Dialog dedicato per visualizzare e gestire partecipanti
 - ✅ **Contesto condiviso** - Nuove personalità vedono tutto lo storico messaggi precedenti
 - ✅ **API REST complete** - Endpoint POST/DELETE per gestione partecipanti via API
+- ✅ **Pulsanti AI individuali** - Ripristinati i pulsanti specifici per ogni personalità con icone uniche
+- ✅ **Stili personalizzati** - Ogni personalità ha colori e icone distintive (🏗️ Geppo, 🎨 C24, ⚡ Mistral, etc.)
 
 ### Previous Progress (July 16, 2025)
 
