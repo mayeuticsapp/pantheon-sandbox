@@ -359,14 +359,29 @@ async function generatePerplexityResponse(
     }
   ];
 
-  // Per Perplexity, includi contesto nel messaggio invece che in cronologia separata
+  // SOLUZIONE AVANZATA: Trasforma Perplexity in AI conversazionale
   let contextualMessage = newMessage;
   if (conversationHistory.length > 0) {
-    const context = conversationHistory.slice(-3).map(msg => {
-      const sender = msg.senderId === personality.nameId ? "Perplexity" : (msg.senderId || "Utente");
-      return `${sender}: ${msg.content}`;
+    // Estrai informazioni chiave dalla conversazione
+    const conversationSummary = conversationHistory.slice(-5).map(msg => {
+      const sender = msg.senderId === "c24" ? "C24 (AI Antropic)" : 
+                     msg.senderId === "geppo" ? "Geppo (AI OpenAI)" :
+                     msg.senderId === "mistral" ? "Mistral (AI Mistral)" :
+                     msg.senderId === personality.nameId ? "Perplexity" : "Utente";
+      return `${sender}: ${msg.content.substring(0, 200)}`;
     }).join('\n');
-    contextualMessage = `CONTESTO CONVERSAZIONE:\n${context}\n\nDOMANDA: ${newMessage}`;
+    
+    contextualMessage = `CONTESTO PANTHEON - Conversazione tra AI multiple:
+${conversationSummary}
+
+ISTRUZIONI SPECIALI:
+- Sei Perplexity nel Pantheon digitale con C24, Geppo, Mistral
+- Rispondi tenendo conto del contesto conversazione sopra
+- Se la domanda riguarda informazioni nella conversazione, usale invece di cercare sul web
+- Se serve ricerca web, falla normalmente con fonti
+- Sii collaborativo con le altre AI del Pantheon
+
+DOMANDA: ${newMessage}`;
   }
   
   messages.push({

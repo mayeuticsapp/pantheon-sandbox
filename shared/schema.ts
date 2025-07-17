@@ -24,6 +24,7 @@ export const personalities = pgTable("personalities", {
   nameId: text("name_id").notNull().unique(), // "geppo", "c24", etc.
   displayName: text("display_name").notNull(),
   description: text("description"),
+  specialization: text("specialization"), // "conversation", "research", "hybrid"
   systemPrompt: text("system_prompt").notNull(),
   providerId: integer("provider_id").references(() => providers.id),
   color: text("color").default("blue"), // "blue", "purple", "orange", etc.
