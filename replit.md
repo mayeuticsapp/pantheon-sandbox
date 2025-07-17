@@ -42,15 +42,6 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 - ✅ File di testo e JSON mostrano contenuto completo alle AI
 - ✅ Integrazione completa nel workflow conversazionale
 
-### Dynamic Participants Management
-- ✅ **Aggiunta personalità in tempo reale** - Possibilità di aggiungere nuove AI durante conversazioni attive
-- ✅ **Rimozione personalità** - Possibilità di rimuovere AI dalla conversazione senza interromperla  
-- ✅ **Interface di gestione** - Dialog dedicato per visualizzare e gestire partecipanti
-- ✅ **Contesto condiviso** - Nuove personalità vedono tutto lo storico messaggi precedenti
-- ✅ **API REST complete** - Endpoint POST/DELETE per gestione partecipanti via API
-- ✅ **Pulsanti AI individuali** - Ripristinati i pulsanti specifici per ogni personalità con icone uniche
-- ✅ **Stili personalizzati** - Ogni personalità ha colori e icone distintive (🏗️ Geppo, 🎨 C24, ⚡ Mistral, etc.)
-
 ### Previous Progress (July 16, 2025)
 
 #### Mistral AI Integration Completed
