@@ -166,7 +166,13 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
       try {
         await new Promise(resolve => setTimeout(resolve, 2000)); // Pausa tra le risposte
         
-        const contextMessage = `Conversazione attuale: ${conversation.title}\n\nIstruzioni: Rispondi dal tuo punto di vista e arricchisci il dialogo con le altre AI del Pantheon. Leggi tutti i messaggi precedenti per contesto completo.`;
+        const contextMessage = `Conversazione attuale: ${conversation.title}\n\nISTRUZIONI SPECIFICHE: 
+- Rispondi SOLO come ${personality.displayName} 
+- NON parlare per altre AI o menzionare cosa direbbero altri
+- NON usare formati come "**Nome:**" per altre AI
+- Concentrati esclusivamente sul TUO punto di vista unico
+- Arricchisci il dialogo con la TUA prospettiva specifica
+- Leggi tutti i messaggi precedenti per contesto completo`;
         
         await aiResponseMutation.mutateAsync({
           personalityId: personality.nameId,
