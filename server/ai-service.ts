@@ -332,13 +332,23 @@ async function generatePerplexityResponse(
     baseURL: provider.baseUrl,
   });
 
-  // Costruisci il prompt di sistema
+  // Costruisci il prompt di sistema con context minimo
   let systemPrompt = personality.systemPrompt;
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE ===\n${instructions}`;
   }
   if (attachmentsContext) {
     systemPrompt += attachmentsContext;
+  }
+
+  // Aggiungi contesto limitato nel system prompt per evitare ripetizioni
+  if (conversationHistory.length > 0) {
+    const lastFewMessages = conversationHistory.slice(-2).map(msg => {
+      const sender = msg.senderId === personality.nameId ? "Tu" : (msg.senderId || "Utente");
+      return `${sender}: ${msg.content.substring(0, 150)}...`;
+    }).join('\n');
+    
+    systemPrompt += `\n\n=== CONTESTO RECENTE ===\n${lastFewMessages}\n\nEVITA di ripetere concetti già espressi.`;
   }
 
   // Costruisci i messaggi della conversazione - Perplexity richiede alternanza user/assistant
