@@ -104,8 +104,8 @@ async function generateOpenAIResponse(
       }
     ];
 
-    // Aggiungi la cronologia della conversazione (ultimi 10 messaggi per non superare il limite)
-    const recentHistory = conversationHistory.slice(-10);
+    // Aggiungi la cronologia della conversazione (ultimi 20 messaggi per contesto completo)
+    const recentHistory = conversationHistory.slice(-20);
     for (const msg of recentHistory) {
       if (msg.senderId === "user") {
         messages.push({
@@ -177,8 +177,8 @@ async function generateAnthropicResponse(
   // Costruisci i messaggi per Anthropic (diverso formato da OpenAI)
   const messages: any[] = [];
 
-  // Aggiungi la cronologia della conversazione (ultimi 10 messaggi)
-  const recentHistory = conversationHistory.slice(-10);
+  // Aggiungi la cronologia della conversazione (ultimi 20 messaggi per contesto completo)
+  const recentHistory = conversationHistory.slice(-20);
   for (const msg of recentHistory) {
     if (msg.senderId === personality.nameId) {
       messages.push({
@@ -250,8 +250,8 @@ async function generateMistralResponse(
     }
   ];
 
-  // Aggiungi la cronologia della conversazione (ultimi 10 messaggi)
-  const recentHistory = conversationHistory.slice(-10);
+  // Aggiungi la cronologia della conversazione (ultimi 20 messaggi per contesto completo)
+  const recentHistory = conversationHistory.slice(-20);
   for (const msg of recentHistory) {
     if (msg.senderId === personality.nameId) {
       messages.push({

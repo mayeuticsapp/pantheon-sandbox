@@ -555,7 +555,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Scrivi il tuo messaggio o una domanda per le AI..."
-                  className="pr-16 resize-none"
+                  className="pr-16 resize-y min-h-[40px] max-h-[400px]"
                   rows={1}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {

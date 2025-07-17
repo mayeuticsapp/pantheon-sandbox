@@ -22,7 +22,13 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 
 ## Recent Progress (July 17, 2025)
 
-### Pantheon Divine Personalities Added
+### AI Context and Interface Improvements
+- ✅ **Aumentato contesto AI** - Da 10 a 20 messaggi precedenti per memoria completa
+- ✅ **Textarea senza limiti** - Rimuovti limiti, permette incollare chat complete (max-height: 400px)
+- ✅ **Payload aumentato** - Limite server portato a 50MB per file grandi
+- ✅ **Messaggi utente più visibili** - Sfondo grigio scuro con bordo per leggibilità
+
+### Pantheon Divine Personalities Added  
 - ✅ **Atena** - Saggezza strategica e visione d'insieme (via Anthropic)
 - ✅ **Hermes** - Comunicazione veloce e innovazione (via OpenAI)  
 - ✅ **Prometeo** - Fuoco creativo e progresso rivoluzionario (via OpenAI)
