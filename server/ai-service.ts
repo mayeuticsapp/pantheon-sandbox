@@ -349,42 +349,23 @@ async function generatePerplexityResponse(
     }
   ];
 
-  // Aggiungi cronologia conversazione semplificata per Perplexity
-  const recentHistory = conversationHistory.slice(-5); // Limitiamo per evitare confusione
-  let lastRole = "system";
-  
-  for (const msg of recentHistory) {
-    if (msg.senderId === personality.nameId) {
-      // Solo se l'ultimo non era assistant
-      if (lastRole !== "assistant") {
-        messages.push({
-          role: "assistant",
-          content: msg.content
-        });
-        lastRole = "assistant";
-      }
-    } else {
-      // Solo se l'ultimo non era user
-      if (lastRole !== "user") {
-        const senderLabel = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
-        messages.push({
-          role: "user", 
-          content: `${senderLabel}: ${msg.content}`
-        });
-        lastRole = "user";
-      }
-    }
-  }
+  // Per Perplexity, semplifico drasticamente: solo contesto + messaggio corrente
+  const contextSummary = conversationHistory.slice(-3).map(msg => {
+    const sender = msg.senderId ? `[${msg.senderId}]` : "[Utente]";
+    return `${sender}: ${msg.content.substring(0, 200)}...`;
+  }).join('\n');
 
-  // Aggiungi il nuovo messaggio sempre come user
-  if (lastRole !== "user") {
+  // Sempre user → assistant alternati
+  if (contextSummary) {
+    messages.push({
+      role: "user",
+      content: `Contesto conversazione:\n${contextSummary}\n\nNuova richiesta: ${newMessage}`
+    });
+  } else {
     messages.push({
       role: "user",
       content: newMessage
     });
-  } else {
-    // Se l'ultimo era user, concatena il messaggio
-    messages[messages.length - 1].content += `\n\n${newMessage}`;
   }
 
   try {
