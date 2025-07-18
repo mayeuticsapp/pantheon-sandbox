@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeCalabria - Sapori autentici dal cuore del Sud | Borough Market Londra</title>
+    <meta name="description" content="Il meglio della Calabria a Londra. Prodotti tipici calabresi autentici nel cuore di Borough Market. 'Nduja, caciocavallo, soppressata e molto altro.">
+    <meta name="keywords" content="Calabria, Borough Market, prodotti tipici calabresi, gastronomia italiana Londra, 'nduja, caciocavallo, soppressata">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS per la mappa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        /* Reset e base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --rosso-peperoncino: #D13636;
+            --verde-oliva: #4A6741;
+            --bianco-crema: #FDFCF8;
+            --oro-calabrese: #DAA520;
+            --grigio-scuro: #333;
+            --grigio-chiaro: #666;
+        }
+        
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            color: var(--grigio-scuro);
+            background-color: var(--bianco-crema);
+            overflow-x: hidden;
+        }
+        
+        /* Tipografia */
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            color: var(--grigio-scuro);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--rosso-peperoncino);
+        }
+        
+        h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--rosso-peperoncino), var(--verde-oliva));
+            margin: 0.5rem auto;
+            border-radius: 2px;
+        }
+        
+        /* Header e Navigation */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(253, 252, 248, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--rosso-peperoncino);
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--grigio-scuro);
+            font-weight: 400;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-links a:hover {
+            color: var(--rosso-peperoncino);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--rosso-peperoncino);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        /* Menu mobile */
+        .mobile-menu {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        
+        .mobile-menu span {
+            width: 25px;
+            height: 3px;
+            background: var(--grigio-scuro);
+            margin: 3px 0;
+            transition: 0.3s;
+        }
+        
+        /* Sezioni principali */
+        .section {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, rgba(209, 54, 54, 0.9), rgba(74, 103, 65, 0.9)),
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><rect fill="%23D13636" width="1200" height="800"/><circle fill="%234A6741" cx="200" cy="200" r="100" opacity="0.3"/><circle fill="%23DAA520" cx="800" cy="300" r="150" opacity="0.2"/><circle fill="%23FDFCF8" cx="1000" cy="600" r="80" opacity="0.4"/></svg>');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        
+        .hero-content {
+            max-width: 800px;
+            z-index: 2;
+        }
+        
+        .hero h1 {
+            color: white;
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: var(--oro-calabrese);
+            color: white;
+            padding: 1rem 2rem;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            animation: fadeInUp 1s ease-out 0.6s both;
+            box-shadow: 0 4px 15px rgba(218, 165, 32, 0.4);
+        }
+        
+        .cta-button:hover {
+            background: #B8860B;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(218, 165, 32, 0.6);
+        }
+        
+        /* Chi siamo */
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-top: 3rem;
+        }
+        
+        .about-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--grigio-chiaro);
+        }
+        
+        .about-image {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .about-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, var(--rosso-peperoncino), var(--verde-oliva));
+            opacity: 0.8;
+            z-index: 1;
+        }
+        
+        .about-image-content {
+            position: relative;
+            z-index: 2;
+            padding: 3rem;
+            color: white;
+            text-align: center;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+        
+        /* Prodotti */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .product-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .product-image {
+            height: 200px;
+            background: linear-gradient(135deg, var(--rosso-peperoncino), var(--verde-oliva));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .product-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle fill="white" cx="20" cy="20" r="2" opacity="0.1"/><circle fill="white" cx="80" cy="30" r="1.5" opacity="0.1"/><circle fill="white" cx="60" cy="70" r="1" opacity="0.1"/></svg>');
+            background-size: 50px 50px;
+        }
+        
+        .product-content {
+            padding: 1.5rem;
+        }
+        
+        .product-title {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--rosso-peperoncino);
+        }
+        
+        .product-description {
+            color: var(--grigio-chiaro);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Dove trovarci */
+        .location-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: start;
+            margin-top: 3rem;
+        }
+        
+        .location-info {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .location-info h3 {
+            color: var(--rosso-peperoncino);
+            margin-bottom: 1rem;
+        }
+        
+        .location-info p {
+            margin-bottom: 1rem;
+            color: var(--grigio-chiaro);
+        }
+        
+        .map-container {
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        /* Contatti */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .contact-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .contact-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .contact-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--rosso-peperoncino);
+        }
+        
+        .contact-card h3 {
+            margin-bottom: 1rem;
+            color: var(--grigio-scuro);
+        }
+        
+        .contact-card a {
+            color: var(--verde-oliva);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .contact-card a:hover {
+            color: var(--rosso-peperoncino);
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--grigio-scuro);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+        
+        /* Animazioni */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+        
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-menu {
+                display: flex;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .section {
+                padding: 4rem 1rem;
+            }
+            
+            .about-content,
+            .location-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.8rem;
+            }
+        }
+        
+        /* Scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Evidenziazione sezione attiva */
+        .nav-links a.active {
+            color: var(--rosso-peperoncino);
+        }
+        
+        .nav-links a.active::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <a href="#home" class="logo">DeCalabria</a>
+            <ul class="nav-links">
+                <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#about" class="nav-link">Chi siamo</a></li>
+                <li><a href="#products" class="nav-link">Prodotti</a></li>
+                <li><a href="#location" class="nav-link">Dove trovarci</a></li>
+                <li><a href="#contact" class="nav-link">Contatti</a></li>
+            </ul>
+            <div class="mobile-menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>DeCalabria</h1>
+            <p class="hero-subtitle">Sapori autentici dal cuore del Sud<br>Il meglio della Calabria, a Londra. Ogni giorno, a Borough Market.</p>
+            <a href="#products" class="cta-button">Scopri i nostri prodotti</a>
+        </div>
+    </section>
+
+    <!-- Chi siamo -->
+    <section id="about" class="section">
+        <h2>Chi siamo</h2>
+        <div class="about-content">
+            <div class="about-text">
+                <p>DeCalabria nasce dall'amore profondo per la nostra terra e dalla passione per i suoi sapori autentici. Abbiamo scelto di portare nel cuore di Londra, precisamente a Borough Market, le eccellenze gastronomiche calabresi che raccontano storie di tradizione, famiglia e artigianalità.</p>
+                
+                <p>Ogni prodotto che offriamo è selezionato con cura dai migliori produttori calabresi, piccole aziende familiari che custodiscono gelosamente antiche ricette e tecniche di lavorazione. La nostra missione è far assaggiare a Londra l'anima della Calabria, quella vera, fatta di sapori intensi, profumi inconfondibili e quella calorosa accoglienza che caratterizza il nostro Sud.</p>
+            </div>
+            <div class="about-image">
+                <div class="about-image-content">
+                    <p>"Dal cuore della Calabria alle tavole di Londra, con autenticità e passione"</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Prodotti -->
+    <section id="products" class="section">
+        <h2>I nostri prodotti</h2>
+        <div class="products-grid">
+            <div class="product-card fade-in">
+                <div class="product-image">🌶️</div>
+                <div class="product-content">
+                    <h3 class="product-title">'Nduja di Spilinga</h3>
+                    <p class="product-description">La famosa crema piccante calabrese, dal sapore intenso e avvolgente. Perfetta per condire pasta, pizza o semplicemente da gustare su pane tostato.</p>
+                </div>
+            </div>
+            
+            <div class="product-card fade-in">
+                <div class="product-image">🧀</div>
+                <div class="product-content">
+                    <h3 class="product-title">Caciocavallo Silano</h3>
+                    <p class="product-description">Formaggio a pasta filata DOP dalle montagne calabresi. Stagionato secondo tradizione, dal sapore deciso e inconfondibile.</p>
+                </div>
+            </div>
+            
+            <div class="product-card fade-in">
+                <div class="product-image">🥓</div>
+                <div class="product-content">
+                    <h3 class="product-title">Soppressata Calabrese</h3>
+                    <p class="product-description">Salume tipico stagionato con peperoncino calabrese. Ogni fetta racconta la maestria dei nostri norcini e la qualità delle carni selezionate.</p>
+                </div>
+            </div>
+            
+            <div class="product-card fade-in">
+                <div class="product-image">🫒</div>
+                <div class="product-content">
+                    <h3 class="product-title">Olio Extravergine d'Oliva</h3>
+                    <p class="product-description">Spremuto a freddo dalle olive calabresi, dal colore dorato e profumo intenso. L'essenza del Mediterraneo in ogni goccia.</p>
+                </div>
+            </div>
+            
+            <div class="product-card fade-in">
+                <div class="product-image">🧅</div>
+                <div class="product-content">
+                    <h3 class="product-title">Cipolla di Tropea IGP</h3>
+                    <p class="product-description">La regina delle cipolle calabresi, dolce e delicata. Perfetta cruda nelle insalate o per preparazioni gastronomiche raffinate.</p>
+                </div>
+            </div>
+            
+            <div class="product-card fade-in">
+                <div class="product-image">🍃</div>
+                <div class="product-content">
+                    <h3 class="product-title">Liquirizia Calabrese</h3>
+                    <p class="product-description">La migliore liquirizia al mondo, coltivata in Calabria da secoli. Pura, intensa e dalle proprietà benefiche uniche.</p>
+                </div>
+            </div>
+            
+            <div class="product-card fade-in">
+                <div class="product-image">🍊</div>
+                <div class="product-content">
+                    <h3 class="product-title">Bergamotto e Derivati</h3>
+                    <p class="product-description">L'oro verde di Calabria. Bergamotto fresco, marmellate e liquori che racchiudono tutto l'aroma della Riviera dei Cedri.</p>
+                </div>
+            </div>
+            
+            <div class="product-card fade-in">
+                <div class="product-image">🥒</div>
+                <div class="product-content">
+                    <h3 class="product-title">Conserve Artigianali</h3>
+                    <p class="product-description">Melanzane, peperoncini, pomodori secchi e altre specialità conservate secondo le antiche ricette di famiglia.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dove trovarci -->
+    <section id="location" class="section">
+        <h2>Dove trovarci</h2>
+        <div class="location-content">
+            <div class="location-info">
+                <h3>📍 Borough Market, Londra</h3>
+                <p><strong>Indirizzo:</strong><br>
+                8 Southwark St<br>
+                London SE1 1TL<br>
+                Regno Unito</p>
+                
+                <h3>🕒 Orari di apertura</h3>
+                <p><strong>Mercoledì - Giovedì:</strong> 10:00 - 17:00<br>
+                <strong>Venerdì:</strong> 10:00 - 18:00<br>
+                <strong>Sabato:</strong> 08:00 - 17:00<br>
+                <strong>Domenica:</strong> 10:00 - 15:00</p>
+                
+                <p><em>Ci trovi ogni giorno nel cuore di Borough Market, il mercato gastronomico più famoso di Londra. Vieni a scoprire i nostri sapori autentici!</em></p>
+            </div>
+            <div class="map-container">
+                <div id="map" style="height: 100%; width: 100%;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contatti -->
+    <section id="contact" class="section">
+        <h2>Contatti</h2>
+        <div class="contact-grid">
+            <div class="contact-card fade-in">
+                <div class="contact-icon">📧</div>
+                <h3>Email</h3>
+                <a href="mailto:info@decalabria.co.uk">info@decalabria.co.uk</a>
+            </div>
+            
+            <div class="contact-card fade-in">
+                <div class="contact-icon">📱</div>
+                <h3>WhatsApp</h3>
+                <a href="https://wa.me/447123456789" target="_blank">+44 712 345 6789</a>
+            </div>
+            
+            <div class="contact-card fade-in">
+                <div class="contact-icon">📸</div>
+                <h3>Instagram</h3>
+                <a href="https://instagram.com/decalabria_london" target="_blank">@decalabria_london</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 DeCalabria. Tutti i diritti riservati. | Sapori autentici dal cuore della Calabria a Borough Market, Londra</p>
+    </footer>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Inizializzazione mappa
+        document.addEventListener('DOMContentLoaded', function() {
+            // Coordonate di Borough Market
+            const map = L.map('map').setView([51.5055, -0.0909], 16);
+            
+            // Aggiunta layer OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Marker per DeCalabria
+            L.marker([51.5055, -0.0909]).addTo(map)
+                .bindPopup('<b>DeCalabria</b><br>Borough Market<br>Sapori autentici calabresi')
+                .openPopup();
+        });
+        
+        // Scroll smooth per navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Evidenziazione sezione attiva nella navigazione
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (window.pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+        
+        // Animazione fade in per gli elementi
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+        
+        // Menu mobile (placeholder per funzionalità futura)
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const navLinks = document.querySelector('.nav-links');
+        
+        mobileMenu.addEventListener('click', function() {
+            // Funzionalità menu mobile da implementare se necessario
+            console.log('Menu mobile clicked');
+        });
+        
+        // Header background change on scroll
+        window.addEventListener('scroll', function() {
+            const header = document.querySelector('header');
+            if (window.scrollY > 100) {
+                header.style.background = 'rgba(253, 252, 248, 0.98)';
+            } else {
+                header.style.background = 'rgba(253, 252, 248, 0.95)';
+            }
+        });
+    </script>
+</body>
+</html>

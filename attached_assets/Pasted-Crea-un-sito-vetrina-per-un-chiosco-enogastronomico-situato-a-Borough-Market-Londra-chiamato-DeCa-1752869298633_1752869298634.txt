@@ -1,0 +1,78 @@
+Crea un sito vetrina per un chiosco enogastronomico situato a Borough Market (Londra), chiamato DeCalabria. Il sito deve essere semplice, elegante, veloce e compatibile con dispositivi mobili.
+
+Obiettivo: raccontare il concept del chiosco, mostrare i prodotti di eccellenza calabresi venduti, comunicare autenticità e passione per la Calabria, e fornire le informazioni base per trovare e contattare il chiosco.
+
+🔷 STRUTTURA DEL SITO
+1. Homepage (Benvenuto)
+
+Immagine di copertina suggestiva (es. prodotti tipici, dettagli del mercato, colori calabresi).
+
+Titolo: “DeCalabria – Sapori autentici dal cuore del Sud”
+
+Sottotitolo: “Il meglio della Calabria, a Londra. Ogni giorno, a Borough Market.”
+
+Call to Action: “Scopri i nostri prodotti” (porta alla sezione prodotti)
+
+2. Chi siamo
+
+Breve racconto emozionale: due paragrafi che parlano dell’amore per la Calabria, dell’idea di portare i suoi sapori nel cuore di Londra, della selezione artigianale.
+
+Valori: autenticità, tradizione, qualità, accoglienza.
+
+3. I nostri prodotti
+
+Galleria con immagini e brevi descrizioni (max 8 prodotti) delle eccellenze proposte:
+
+‘Nduja di Spilinga
+
+Caciocavallo silano
+
+Soppressata
+
+Olio extravergine d’oliva
+
+Cipolla di Tropea IGP
+
+Liquirizia calabrese
+
+Bergamotto e derivati
+
+Conserve artigianali (melanzane, peperoncini, etc.)
+
+4. Dove trovarci
+
+Testo: “Ci trovi ogni giorno nel cuore di Borough Market, Londra.”
+
+Mappa interattiva incorporata
+
+Indirizzo preciso
+
+Giorni e orari di apertura
+
+5. Contatti
+
+Email
+
+WhatsApp (link click-to-chat)
+
+Instagram (profilo social, se disponibile)
+
+🎨 STILE E TONO
+Colori: tono caldo mediterraneo – rosso peperoncino, verde oliva, bianco
+
+Font: elegante ma leggibile – es. Playfair Display per i titoli, Open Sans per i testi
+
+Layout: minimal ma con personalità, con dettagli ispirati all’artigianato calabrese
+
+Tono di voce: autentico, accogliente, narrativo. Deve far sentire Londra un po’ più “di casa” per chi ama la Calabria.
+
+🧠 ALTRE ISTRUZIONI PER L’AI
+Ottimizza il sito per SEO locale: includi le parole “Calabria”, “Borough Market”, “prodotti tipici calabresi”, “gastronomia italiana Londra”.
+
+Sito one-page oppure con menu a scorrimento fluido (scroll).
+
+Inserisci tag ALT descrittivi sulle immagini dei prodotti per accessibilità e SEO.
+
+Il sito deve essere multi-lingua ready, con lingua base inglese ma facilmente espandibile anche all’italiano.
+
+Il sito NON deve includere e-commerce, solo vetrina e contatti.
