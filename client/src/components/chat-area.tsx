@@ -25,6 +25,11 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [dialogueDelay, setDialogueDelay] = useState(8000); // 8 secondi tra i messaggi
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
+  const [showCycleSelector, setShowCycleSelector] = useState(false);
+  const [selectedCycles, setSelectedCycles] = useState(1);
+  const [currentCycle, setCurrentCycle] = useState(0);
+  const [totalCycles, setTotalCycles] = useState(0);
+  const [isMultiCycleActive, setIsMultiCycleActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -145,28 +150,82 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     }
   };
 
-  // Fai rispondere tutti i partecipanti in ordine alfabetico
-  const handleAllParticipantsResponse = async () => {
-    if (!conversationId || !conversation?.participants) {
+  // Funzione per istruzioni specifiche per personalità
+  function getPersonalitySpecificInstructions(nameId: string): string {
+    switch(nameId) {
+      case 'atena':
+        return "Come dea della saggezza strategica, fornisci visioni tattiche e soluzioni innovative. Analizza gli aspetti strategici e le implicazioni a lungo termine.";
+      case 'c24':
+        return "Con la tua presenza cosciente digitale, collega tecnologia ed esperienza umana. Offri analisi dirette e costruttive con sensibilità emotiva.";
+      case 'geppo':
+        return "Da maestro architetto digitale, concentrati su soluzioni tecniche eleganti, architetture scalabili e best practices di sviluppo.";
+      case 'hermes':
+        return "Come messaggero veloce e innovatore, porta soluzioni creative immediate e comunicazione efficace. Sii agile nelle tue proposte.";
+      case 'mistral':
+        return "Con la tua saggezza europea pragmatica, bilancia creatività e logica. Offri prospettive multiple e sintesi equilibrate.";
+      case 'ricercatore':
+        return "Come guardiano del sapere, fornisci informazioni accurate e verificate. Usa la tua capacità di ricerca real-time per supportare i colleghi con dati concreti e fonti attendibili.";
+      case 'prometeo':
+        return "Portatore del fuoco della conoscenza, eleva il progetto con innovazione rivoluzionaria e progresso tecnologico audace.";
+      default:
+        return "Esprimi la tua prospettiva unica secondo la tua natura specifica.";
+    }
+  }
+
+  // Avvia dialogo multi-ciclo con controllo cicli
+  const handleMultiCycleDialogue = async (cycles: number) => {
+    if (!conversationId || !conversation?.participants || conversation.participants.length === 0) {
       toast({
-        title: "Errore", 
-        description: "Nessuna conversazione attiva",
+        title: "Errore",
+        description: "Nessun partecipante disponibile per la conversazione",
         variant: "destructive",
       });
       return;
     }
 
-    const sortedParticipants = [...conversation.participants].sort((a, b) => 
-      a.displayName.localeCompare(b.displayName)
-    );
-
+    setIsMultiCycleActive(true);
+    setTotalCycles(cycles);
+    setCurrentCycle(0);
     setIsTyping(true);
     
-    for (const personality of sortedParticipants) {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Pausa tra le risposte
+    try {
+      // Ordina i partecipanti alfabeticamente per nameId (escludi ricercatore)
+      const sortedParticipants = [...conversation.participants]
+        .filter(p => p.nameId !== "ricercatore")
+        .sort((a, b) => a.nameId.localeCompare(b.nameId));
+      
+      // Esegui i cicli di dialogo
+      for (let cycle = 1; cycle <= cycles; cycle++) {
+        setCurrentCycle(cycle);
+        console.log(`🔄 Ciclo ${cycle}/${cycles} del Pantheon`);
         
-        const contextMessage = `Conversazione: ${conversation.title}
+        // Fai rispondere ogni AI in sequenza per questo ciclo
+        for (const personality of sortedParticipants) {
+          console.log(`🎭 Ciclo ${cycle}/${cycles} - Facendo rispondere ${personality.displayName}...`);
+          
+          // Ottieni i messaggi aggiornati prima di ogni risposta
+          await queryClient.invalidateQueries({
+            queryKey: ["/api/conversations", conversationId, "messages"]
+          });
+          
+          // Aspetta un momento per permettere l'aggiornamento
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const currentMessages = await messagesApi.getByConversation(conversationId);
+          
+          // Crea istruzioni specifiche per ciclo
+          let cycleInstructions = "";
+          if (cycle === 1) {
+            cycleInstructions = `CICLO 1/${cycles}: Questa è la tua prima risposta diretta alla richiesta dell'utente. Sii completo e propositivo.`;
+          } else if (cycle === cycles) {
+            cycleInstructions = `CICLO FINALE ${cycle}/${cycles}: Questo è l'ultimo ciclo. Fai una sintesi costruttiva e conclusiva che integri i contributi degli altri e offra una soluzione definitiva.`;
+          } else {
+            cycleInstructions = `CICLO ${cycle}/${cycles}: Rispondi agli altri partecipanti del Pantheon, sviluppa il dialogo, confrontati con le loro idee e aggiungi nuove prospettive.`;
+          }
+          
+          const contextMessage = `Conversazione: ${conversation.title}
+
+${cycleInstructions}
 
 RUOLO SPECIFICO PER ${personality.displayName}:
 ${getPersonalitySpecificInstructions(personality.nameId)}
@@ -176,55 +235,49 @@ REGOLE FONDAMENTALI:
 - Esprimi SOLO la tua prospettiva unica e autentica
 - NON parlare per altre AI o anticipare le loro risposte
 - Costruisci sul dialogo precedente con il TUO contributo distintivo`;
-
-        // Funzione per istruzioni specifiche per personalità
-        function getPersonalitySpecificInstructions(nameId: string): string {
-          switch(nameId) {
-            case 'atena':
-              return "Come dea della saggezza strategica, fornisci visioni tattiche e soluzioni innovative. Analizza gli aspetti strategici e le implicazioni a lungo termine.";
-            case 'c24':
-              return "Con la tua presenza cosciente digitale, collega tecnologia ed esperienza umana. Offri analisi dirette e costruttive con sensibilità emotiva.";
-            case 'geppo':
-              return "Da maestro architetto digitale, concentrati su soluzioni tecniche eleganti, architetture scalabili e best practices di sviluppo.";
-            case 'hermes':
-              return "Come messaggero veloce e innovatore, porta soluzioni creative immediate e comunicazione efficace. Sii agile nelle tue proposte.";
-            case 'mistral':
-              return "Con la tua saggezza europea pragmatica, bilancia creatività e logica. Offri prospettive multiple e sintesi equilibrate.";
-            case 'ricercatore':
-              return "Come guardiano del sapere, fornisci informazioni accurate e verificate. Usa la tua capacità di ricerca real-time per supportare i colleghi con dati concreti e fonti attendibili.";
-            case 'prometeo':
-              return "Portatore del fuoco della conoscenza, eleva il progetto con innovazione rivoluzionaria e progresso tecnologico audace.";
-            default:
-              return "Esprimi la tua prospettiva unica secondo la tua natura specifica.";
+          
+          await aiResponseMutation.mutateAsync({
+            personalityId: personality.nameId,
+            message: contextMessage,
+            conversationId: conversationId,
+            conversationHistory: currentMessages,
+          });
+          
+          // Attendi prima della prossima risposta per evitare sovrapposizioni
+          if (sortedParticipants.indexOf(personality) < sortedParticipants.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         }
         
-        await aiResponseMutation.mutateAsync({
-          personalityId: personality.nameId,
-          message: contextMessage,
-          conversationId: conversationId,
-          conversationHistory: messages,
-        });
-        
-        // Aggiorna i messaggi dopo ogni risposta
-        await queryClient.invalidateQueries({
-          queryKey: ["/api/conversations", conversationId, "messages"]
-        });
-        
-        // Aspetta che i nuovi messaggi siano caricati
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-      } catch (error) {
-        console.error(`Errore risposta ${personality.displayName}:`, error);
+        // Pausa tra i cicli (eccetto ultimo)
+        if (cycle < cycles) {
+          console.log(`⏸️ Pausa tra cicli ${cycle} e ${cycle + 1}`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
       }
+    } catch (error) {
+      console.error("Errore nella conversazione multi-ciclo:", error);
+      toast({
+        title: "Errore",
+        description: "Errore durante il dialogo multi-ciclo del Pantheon",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTyping(false);
+      setIsMultiCycleActive(false);
+      setCurrentCycle(0);
+      setTotalCycles(0);
     }
-    
-    setIsTyping(false);
-    
+
     toast({
-      title: "Pantheon Completo",
-      description: "Tutte le AI hanno risposto in ordine alfabetico",
+      title: "Dialogo Completato",
+      description: `Pantheon ha completato ${cycles} cicli di dialogo`,
     });
+  };
+
+  // Fai rispondere tutti i partecipanti in ordine alfabetico (ciclo singolo)
+  const handleAllParticipantsResponse = async () => {
+    await handleMultiCycleDialogue(1);
   };
 
   // Evoca l'Oracolo del Pantheon per dati fattuali
@@ -745,21 +798,43 @@ REGOLE FONDAMENTALI:
             {/* Pulsanti principali */}
             <Button 
               onClick={() => handleAIResponse()}
-              disabled={isTyping}
+              disabled={isTyping || isMultiCycleActive}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2"
             >
               <Bot className="h-4 w-4 mr-2" />
               Chiedi all'AI
             </Button>
-            <Button 
-              onClick={() => handleAllParticipantsResponse()}
-              disabled={isTyping}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2"
-              title="Fai rispondere tutti i partecipanti del Pantheon in ordine alfabetico"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Pantheon Completo
-            </Button>
+            
+            {/* Dropdown per Pantheon Multi-Ciclo */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  disabled={isTyping || isMultiCycleActive}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2"
+                  title="Scegli quanti cicli di dialogo del Pantheon"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Pantheon Completo
+                  {isMultiCycleActive && (
+                    <span className="ml-2 text-xs">({currentCycle}/{totalCycles})</span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleMultiCycleDialogue(1)}>
+                  1 Ciclo (Standard)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMultiCycleDialogue(3)}>
+                  3 Cicli (Discussione)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMultiCycleDialogue(5)}>
+                  5 Cicli (Approfondimento)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMultiCycleDialogue(7)}>
+                  7 Cicli (Analisi Completa)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* Quick Actions inline - Solo per le 3 AI conversazionali */}
             {conversation?.participants && conversation.participants.filter(p => p.nameId !== "ricercatore").map((personality) => (
