@@ -18,10 +18,24 @@ export interface BuildResult {
 export class AICollaborativeBuilder {
   private async generateWithAI(personalityId: string, prompt: string): Promise<string> {
     try {
-      const response = await generateAIResponse(personalityId, [
-        { role: "user", content: prompt }
-      ]);
-      return response.content;
+      // Get the personality
+      const personality = await storage.getPersonalityByNameId(personalityId);
+      if (!personality) {
+        throw new Error(`Personality ${personalityId} not found`);
+      }
+      
+      // Create a minimal conversation context for the AI
+      const messages = [
+        {
+          id: 999,
+          conversationId: 0,
+          senderId: "user",
+          content: prompt,
+          createdAt: new Date()
+        }
+      ];
+      
+      return await generateAIResponse(personality, messages, prompt);
     } catch (error) {
       console.error(`Error generating with ${personalityId}:`, error);
       throw new Error(`Failed to generate content with ${personalityId}: ${error.message}`);
@@ -87,7 +101,40 @@ Respond with a JSON object containing the project structure:
 Only respond with valid JSON, no other text.`;
 
       const architectureResponse = await this.generateWithAI("geppo", architecturePrompt);
-      const architecture = JSON.parse(architectureResponse);
+      
+      // Clean the response to extract JSON
+      let cleanedResponse = architectureResponse.trim();
+      
+      // More robust JSON extraction
+      if (cleanedResponse.includes('```json')) {
+        const jsonMatch = cleanedResponse.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          cleanedResponse = jsonMatch[1].trim();
+        }
+      } else if (cleanedResponse.includes('```')) {
+        const codeMatch = cleanedResponse.match(/```\s*([\s\S]*?)\s*```/);
+        if (codeMatch) {
+          cleanedResponse = codeMatch[1].trim();
+        }
+      }
+      
+      // Find JSON object by looking for { and }
+      const jsonStart = cleanedResponse.indexOf('{');
+      const jsonEnd = cleanedResponse.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      console.log("🔍 Architecture response (first 200 chars):", cleanedResponse.substring(0, 200));
+      
+      let architecture;
+      try {
+        architecture = JSON.parse(cleanedResponse);
+      } catch (error) {
+        console.error("❌ JSON parse error:", error.message);
+        console.error("🔍 Full response:", architectureResponse);
+        throw new Error(`Failed to parse architecture response: ${error.message}`);
+      }
       
       // Add architecture message
       const archMessage = await storage.createMessage({
