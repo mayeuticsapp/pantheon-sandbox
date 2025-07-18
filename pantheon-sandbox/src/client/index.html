@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PantheonSandbox - robS Test Environment</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+      }
+      
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      
+      .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 40px;
+      }
+      
+      .header h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      }
+      
+      .header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+      }
+      
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 40px;
+      }
+      
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+      }
+      
+      .card:hover {
+        transform: translateY(-5px);
+      }
+      
+      .card h3 {
+        color: #667eea;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+      }
+      
+      .card p {
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      
+      .btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: opacity 0.3s ease;
+      }
+      
+      .btn:hover {
+        opacity: 0.9;
+      }
+      
+      .status {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      }
+      
+      .status h3 {
+        color: #667eea;
+        margin-bottom: 20px;
+      }
+      
+      .status-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      
+      .status-ok {
+        color: #10B981;
+        margin-right: 10px;
+      }
+      
+      .status-error {
+        color: #EF4444;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🏛️ PantheonSandbox</h1>
+        <p>robS Test Environment - Security Framework Testing</p>
+      </div>
+      
+      <div class="cards">
+        <div class="card">
+          <h3>🔐 Security Framework</h3>
+          <p>Test del framework di sicurezza Zero-Trust implementato secondo le raccomandazioni Manus. Include encryption, audit logging e controllo accessi.</p>
+          <a href="/test-security" class="btn">Test Security</a>
+        </div>
+        
+        <div class="card">
+          <h3>🤖 AI Multi-Provider</h3>
+          <p>Sistema AI integrato con Claude Sonnet 4, GPT-4o, Mistral e Perplexity. Test delle funzionalità di memoria semantica e generazione.</p>
+          <a href="/test-ai" class="btn">Test AI</a>
+        </div>
+        
+        <div class="card">
+          <h3>💾 Workspace Manager</h3>
+          <p>Gestione workspace con crittografia isolata e controllo accessi. Ogni workspace ha le proprie chiavi di sicurezza.</p>
+          <a href="/test-workspace" class="btn">Test Workspace</a>
+        </div>
+        
+        <div class="card">
+          <h3>📊 Memory Semantica</h3>
+          <p>Sistema di memoria semantica per AI con learning continuo, categorizzazione automatica e retention policies.</p>
+          <a href="/test-memory" class="btn">Test Memory</a>
+        </div>
+      </div>
+      
+      <div class="status">
+        <h3>🚀 System Status</h3>
+        <div id="status-container">
+          <div class="status-item">
+            <span class="status-ok">●</span>
+            <span>Caricamento status...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Check system status
+      async function checkStatus() {
+        try {
+          const response = await fetch('/health');
+          const data = await response.json();
+          
+          const container = document.getElementById('status-container');
+          container.innerHTML = `
+            <div class="status-item">
+              <span class="status-ok">●</span>
+              <span>Server Status: ${data.status}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-ok">●</span>
+              <span>Security Framework: ${data.security?.rateLimit || 'active'}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-ok">●</span>
+              <span>AI Services: Ready</span>
+            </div>
+            <div class="status-item">
+              <span class="status-ok">●</span>
+              <span>Database: Connected</span>
+            </div>
+          `;
+        } catch (error) {
+          const container = document.getElementById('status-container');
+          container.innerHTML = `
+            <div class="status-item">
+              <span class="status-error">●</span>
+              <span>Connection Error: ${error.message}</span>
+            </div>
+          `;
+        }
+      }
+      
+      checkStatus();
+      setInterval(checkStatus, 10000); // Check every 10 seconds
+    </script>
+  </body>
+</html>

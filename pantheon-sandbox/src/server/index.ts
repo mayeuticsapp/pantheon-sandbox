@@ -15,54 +15,13 @@ import type { SecurityContext } from '../shared/security/types';
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Security Middleware per suggerimenti Manus
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "ws:", "wss:"],
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+// Security Middleware semplificato per robS solo
+app.use(helmet());
 
-// Rate Limiting globale
-const globalRateLimiter = new RateLimiterFlexible({
-  keyGenerator: (req) => req.ip,
-  points: 100, // 100 requests
-  duration: 60, // per minute
-  blockDuration: 60, // block for 1 minute
-});
-
-app.use(async (req, res, next) => {
-  try {
-    await globalRateLimiter.consume(req.ip);
-    next();
-  } catch (rateLimitError) {
-    SecurityLogger.logSecurityViolation('rate_limit_exceeded', {
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-      url: req.url,
-    });
-    
-    res.status(429).json({
-      error: 'Too many requests',
-      retryAfter: Math.round(rateLimitError.msBeforeNext) || 60000,
-    });
-  }
-});
-
-// CORS con configurazione sicura
+// CORS aperto per sviluppo
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] // Configurare dominio production
-    : ['http://localhost:3000', 'http://localhost:5173'],
+  origin: '*',
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 // Body parsing con limiti sicuri
@@ -72,38 +31,23 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Request logging per audit trail
 app.use(requestLogger);
 
-// Security Context Middleware
-app.use('/api', async (req: any, res, next) => {
-  const authHeader = req.headers.authorization;
-  
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    const securityContext = await authService.validateSession(token);
-    
-    if (securityContext) {
-      req.securityContext = securityContext;
-      SecurityLogger.logAuthentication('success', {
-        userId: securityContext.authentication.userId,
-        sessionId: securityContext.authentication.sessionId,
-        endpoint: req.path,
-      });
-    } else {
-      SecurityLogger.logAuthentication('failure', {
-        reason: 'invalid_token',
-        endpoint: req.path,
-        ip: req.ip,
-      });
-    }
-  }
-  
+// Fake user context per robS (niente auth)
+app.use('/api', (req: any, res, next) => {
+  req.user = {
+    id: 'robs-user-id',
+    username: 'robS',
+    roles: ['admin', 'user']
+  };
   next();
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api', apiRoutes);
+
+// Serve frontend
+app.use(express.static('src/client'));
 
 // Health check con security status
 app.get('/health', (req, res) => {

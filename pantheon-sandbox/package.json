@@ -4,10 +4,9 @@
   "description": "Advanced AI Collaboration Workspace with Security Framework",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "tsx watch src/server/index.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "dev:server": "tsx watch server/index.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
