@@ -437,10 +437,10 @@ REGOLE FONDAMENTALI:
   }
 
   return (
-    <Card className="h-[calc(100vh-140px)] sm:h-[calc(100vh-180px)]">
+    <Card className="h-[calc(100vh-100px)]">
       <CardContent className="p-0 h-full flex flex-col">
-        {/* Header */}
-        <div className="p-3 sm:p-4 border-b border-gray-200">
+        {/* Header - Compatto */}
+        <div className="p-2 sm:p-3 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
               <div className="flex -space-x-1 sm:-space-x-2">
@@ -581,8 +581,8 @@ REGOLE FONDAMENTALI:
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto scrollable-messages p-4 space-y-4" style={{ scrollBehavior: 'smooth' }}>
+        {/* Messages - Area espansa */}
+        <div className="flex-1 overflow-y-auto scrollable-messages p-3 space-y-3" style={{ scrollBehavior: 'smooth' }}>
           {/* File attachments display */}
           {attachments.length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -701,17 +701,17 @@ REGOLE FONDAMENTALI:
           </div>
         )}
 
-        {/* Input Area */}
-        <div className="p-3 sm:p-4 border-t border-gray-200">
-          {/* Textarea principale - grande e prominente */}
-          <div className="mb-4">
+        {/* Input Area - Compatto */}
+        <div className="p-2 sm:p-3 border-t border-gray-200">
+          {/* Textarea principale - ottimizzato */}
+          <div className="mb-3">
             <div className="relative">
               <Textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Scrivi il tuo messaggio o una domanda per le AI..."
-                className="w-full pr-16 resize-y min-h-[120px] max-h-[300px] text-base leading-relaxed"
-                rows={5}
+                className="w-full pr-16 resize-y min-h-[80px] max-h-[200px] text-base leading-relaxed"
+                rows={3}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -740,8 +740,9 @@ REGOLE FONDAMENTALI:
             </div>
           </div>
 
-          {/* Pulsanti principali - compatti */}
-          <div className="flex flex-wrap gap-2 mb-3">
+          {/* Tutti i pulsanti in una riga */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Pulsanti principali */}
             <Button 
               onClick={() => handleAIResponse()}
               disabled={isTyping}
@@ -759,37 +760,32 @@ REGOLE FONDAMENTALI:
               <Users className="h-4 w-4 mr-2" />
               Pantheon Completo
             </Button>
-
+            
+            {/* Quick Actions inline - Solo per le 3 AI conversazionali */}
+            {conversation?.participants && conversation.participants.filter(p => p.nameId !== "ricercatore").map((personality) => (
+              <Button
+                key={personality.nameId}
+                variant="outline"
+                size="sm"
+                onClick={() => handleAIResponse(personality.nameId)}
+                disabled={isTyping}
+                className={`text-xs font-semibold px-3 py-2 ${
+                  personality.nameId === "geppo" 
+                    ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
+                    : personality.nameId === "c24"
+                    ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
+                    : personality.nameId === "mistral"
+                    ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
+                    : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
+                }`}
+              >
+                {personality.nameId === "geppo" ? "🏗️" : 
+                 personality.nameId === "c24" ? "🎨" : 
+                 personality.nameId === "mistral" ? "🌟" : "🤖"} 
+                {personality.displayName.split(" - ")[0]}
+              </Button>
+            ))}
           </div>
-          
-          {/* Quick Actions - Solo per le 3 AI conversazionali */}
-          {conversation?.participants && conversation.participants.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {conversation.participants.filter(p => p.nameId !== "ricercatore").map((personality) => (
-                <Button
-                  key={personality.nameId}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAIResponse(personality.nameId)}
-                  disabled={isTyping}
-                  className={`text-xs font-semibold px-3 py-1 ${
-                    personality.nameId === "geppo" 
-                      ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
-                      : personality.nameId === "c24"
-                      ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
-                      : personality.nameId === "mistral"
-                      ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
-                      : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
-                  }`}
-                >
-                  {personality.nameId === "geppo" ? "🏗️" : 
-                   personality.nameId === "c24" ? "🎨" : 
-                   personality.nameId === "mistral" ? "🌟" : "🤖"} 
-                  {personality.displayName.split(" - ")[0]}
-                </Button>
-              ))}
-            </div>
-          )}
 
           {/* Dialogue Settings Dialog */}
           <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
