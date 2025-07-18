@@ -252,17 +252,23 @@ REGOLE FONDAMENTALI:
     setIsTyping(true);
 
     try {
-      // Invia il messaggio utente
+      // Invia il messaggio utente PRIMA
       await sendMessageMutation.mutateAsync(newMessage);
       
-      // Formatta la richiesta per l'Oracolo
-      const oracleQuery = `ask_oracle("${newMessage.trim()}")`;
+      // Aspetta che il messaggio sia salvato
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Aggiorna i messaggi per includere la nuova domanda
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/conversations", conversationId, "messages"]
+      });
+      
+      // L'Oracolo riceverà automaticamente l'ultimo messaggio utente come query pura
       await aiResponseMutation.mutateAsync({
         personalityId: oracle.nameId,
-        message: oracleQuery,
+        message: "ORACOLO_QUERY", // Segnale per il backend
         conversationId: conversationId,
-        conversationHistory: messages,
+        conversationHistory: [], // Vuoto - il backend estrarrà l'ultima domanda
       });
       
       toast({

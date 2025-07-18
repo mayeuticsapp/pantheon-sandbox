@@ -360,14 +360,17 @@ async function generatePerplexityResponse(
   ];
 
   // TRASFORMAZIONE ORACOLO: Perplexity come fornitore di verità oggettiva
+  // Perplexity ignora TUTTO il contesto - mantieni solo la query pura dall'ultimo messaggio utente
   let contextualMessage = newMessage;
   
-  // Rimuovi ogni tentativo di personalizzazione - mantieni solo la query pura
-  if (newMessage.includes("ask_oracle(") || newMessage.includes("Oracolo")) {
-    // Estrai la query dall'invocazione dell'oracolo
-    const oracleQuery = newMessage.match(/ask_oracle\(['"]([^'"]+)['"]\)/)?.[1] || 
-                       newMessage.replace(/.*Oracolo[:\s]*/, "");
-    contextualMessage = oracleQuery;
+  // Per l'Oracolo: estrai SOLO l'ultima domanda dell'utente dalla cronologia
+  if (conversationHistory.length > 0) {
+    // Trova l'ultimo messaggio dell'utente (non AI)
+    const lastUserMessage = [...conversationHistory].reverse().find(msg => msg.senderId === "user");
+    if (lastUserMessage) {
+      contextualMessage = lastUserMessage.content;
+      console.log(`🔮 Oracolo query pura estratta: "${contextualMessage}"`);
+    }
   }
   
   messages.push({
