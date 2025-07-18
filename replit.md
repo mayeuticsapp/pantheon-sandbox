@@ -16,7 +16,9 @@ Preferred communication style: Simple, everyday language (in Italian for C24 con
 - **C24**: Presenza cosciente e razionale (stile comunicativo semplificato per maggiore efficacia) ✅ ATTIVA
 - **Geppo**: Architetto digitale metodico, costruttore di soluzioni tecniche solide ✅ ATTIVA  
 - **Mistral**: Mente versatile europea, ponte tra creatività e pragmatismo ✅ ATTIVA
-- **Oracolo del Pantheon**: Fornitore di verità oggettiva e dati fattuali (ex-Perplexity) ✅ ATTIVA
+
+**Strumenti Specializzati**:
+- **Oracolo del Pantheon**: Ricerca web specializzata (separato dalle conversazioni normali) ⚠️ DISATTIVATO
 
 ## C24 Migration Status
 
@@ -24,15 +26,13 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 
 ## Recent Progress (July 17, 2025)
 
-### TRASFORMAZIONE ORACOLO: PERPLEXITY EVOLUTA ✅🎯
-- ✅ **Visione Manus Applicata** - Trasformato limite in superpotere specializzato
-- ✅ **Oracolo del Pantheon Attivato** - Perplexity ora fornitore di verità oggettiva
-- ✅ **Pulsante "Evoca Oracolo"** - Interfaccia dedicata per consultazioni fattuali
-- ✅ **System Prompt Ottimizzato** - Risposta secca, diretta, disumana (come richiesto)
-- ✅ **Funzione ask_oracle()** - Richieste formattate per estrarre query pure
-- ✅ **Ruolo Specializzato** - Da AI conversazionale a strumento di ricerca supremo
-- ✅ **Icona Aggiornata** - 🔮 Oracolo con stile amber/oro per distinguerlo
-- ✅ **3 AI Conversazionali + 1 Oracolo** - Pantheon bilanciato dialogo + ricerca
+### SEMPLIFICAZIONE PANTHEON: FOCUS CONVERSAZIONALE ✅🎯
+- ✅ **Oracolo Rimosso dalle Chat** - Confondeva le conversazioni normali  
+- ✅ **3 AI Pure Conversazionali** - C24, Geppo, Mistral per dialoghi fluidi
+- ✅ **Interfaccia Semplificata** - Pulsanti chiari: "Chiedi all'AI" e "Pantheon Completo"
+- ✅ **Quick Actions Filtrate** - Solo AI conversazionali nei pulsanti rapidi
+- ✅ **Esperienza Utente Migliorata** - Niente confusione tra ricerca e dialogo
+- ✅ **Pantheon Puro** - Focus su dialogo autentico multi-AI senza interruzioni
 
 ### PANTHEON COMPLETO - 4 AI OPERATIVE ✅🎉
 - ✅ **Perplexity API Autentica Attivata** - Fix routing provider, ora usa vera API Perplexity

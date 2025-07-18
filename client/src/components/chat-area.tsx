@@ -759,21 +759,13 @@ REGOLE FONDAMENTALI:
               <Users className="h-4 w-4 mr-2" />
               Pantheon Completo
             </Button>
-            <Button 
-              onClick={() => handleOracleQuery()}
-              disabled={isTyping}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2"
-              title="Evoca l'Oracolo del Pantheon per dati fattuali oggettivi"
-            >
-              <Bot className="h-4 w-4 mr-2" />
-              Evoca Oracolo
-            </Button>
+
           </div>
           
-          {/* Quick Actions - Solo per AI individuali */}
+          {/* Quick Actions - Solo per le 3 AI conversazionali */}
           {conversation?.participants && conversation.participants.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
-              {conversation.participants.map((personality) => (
+              {conversation.participants.filter(p => p.nameId !== "ricercatore").map((personality) => (
                 <Button
                   key={personality.nameId}
                   variant="outline"
@@ -787,15 +779,12 @@ REGOLE FONDAMENTALI:
                       ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
                       : personality.nameId === "mistral"
                       ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
-                      : personality.nameId === "ricercatore"
-                      ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600"
                       : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
                   }`}
                 >
                   {personality.nameId === "geppo" ? "🏗️" : 
                    personality.nameId === "c24" ? "🎨" : 
-                   personality.nameId === "mistral" ? "🌟" :
-                   personality.nameId === "ricercatore" ? "🔮" : "🤖"} 
+                   personality.nameId === "mistral" ? "🌟" : "🤖"} 
                   {personality.displayName.split(" - ")[0]}
                 </Button>
               ))}
