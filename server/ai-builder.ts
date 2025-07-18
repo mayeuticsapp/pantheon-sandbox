@@ -373,6 +373,20 @@ FUNCTIONALITY REQUIREMENTS:
 • Mobile-optimized touch interactions
 • Accessibility keyboard navigation
 • Error handling with user-friendly messages
+• Real business logic implementation
+• Advanced event listeners and callbacks
+• Performance-optimized code with debouncing
+• Cross-browser compatibility
+
+QUALITY STANDARDS:
+• Enterprise-grade JavaScript architecture
+• Modern ES6+ patterns and best practices
+• Performance optimized (60fps animations)
+• Accessibility compliant interactions
+• Real functionality, not just demo code
+• Clean error handling and user feedback
+
+Return ONLY the complete JavaScript code. NO explanations, NO markdown blocks.`;
 • Loading states and progress indicators
 
 QUALITY STANDARDS:
