@@ -4,6 +4,7 @@ import {
   conversations, 
   messages,
   attachments,
+  projectFiles,
   type Provider, 
   type InsertProvider,
   type Personality, 
@@ -14,6 +15,8 @@ import {
   type InsertMessage,
   type Attachment,
   type InsertAttachment,
+  type ProjectFile,
+  type InsertProjectFile,
   type ConversationWithParticipants,
   type MessageWithSender
 } from "@shared/schema";
@@ -52,6 +55,12 @@ export interface IStorage {
   getAttachments(conversationId: number): Promise<Attachment[]>;
   createAttachment(attachment: InsertAttachment): Promise<Attachment>;
   deleteAttachment(id: number): Promise<boolean>;
+
+  // Project Files (for build mode)
+  getProjectFiles(conversationId: number): Promise<ProjectFile[]>;
+  createProjectFile(projectFile: InsertProjectFile): Promise<ProjectFile>;
+  updateProjectFile(id: number, projectFile: Partial<InsertProjectFile>): Promise<ProjectFile | undefined>;
+  deleteProjectFile(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -387,6 +396,36 @@ export class MemStorage implements IStorage {
   async deleteMessage(id: number): Promise<boolean> {
     return this.messages.delete(id);
   }
+
+  // Attachments (MemStorage - not used but needed for interface)
+  async getAttachments(conversationId: number): Promise<Attachment[]> {
+    return [];
+  }
+
+  async createAttachment(attachment: InsertAttachment): Promise<Attachment> {
+    throw new Error("Attachments not supported in MemStorage");
+  }
+
+  async deleteAttachment(id: number): Promise<boolean> {
+    return false;
+  }
+
+  // Project Files (MemStorage - not used but needed for interface)
+  async getProjectFiles(conversationId: number): Promise<ProjectFile[]> {
+    return [];
+  }
+
+  async createProjectFile(projectFile: InsertProjectFile): Promise<ProjectFile> {
+    throw new Error("Project files not supported in MemStorage");
+  }
+
+  async updateProjectFile(id: number, projectFile: Partial<InsertProjectFile>): Promise<ProjectFile | undefined> {
+    return undefined;
+  }
+
+  async deleteProjectFile(id: number): Promise<boolean> {
+    return false;
+  }
 }
 
 // DatabaseStorage implementation
@@ -601,6 +640,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAttachment(id: number): Promise<boolean> {
     await db.update(attachments).set({ isActive: false }).where(eq(attachments.id, id));
+    return true;
+  }
+
+  // Project Files
+  async getProjectFiles(conversationId: number): Promise<ProjectFile[]> {
+    return await db
+      .select()
+      .from(projectFiles)
+      .where(eq(projectFiles.conversationId, conversationId))
+      .orderBy(projectFiles.createdAt);
+  }
+
+  async createProjectFile(projectFile: InsertProjectFile): Promise<ProjectFile> {
+    const [newProjectFile] = await db
+      .insert(projectFiles)
+      .values(projectFile)
+      .returning();
+    return newProjectFile;
+  }
+
+  async updateProjectFile(id: number, projectFile: Partial<InsertProjectFile>): Promise<ProjectFile | undefined> {
+    const [updatedProjectFile] = await db
+      .update(projectFiles)
+      .set({ ...projectFile, updatedAt: new Date() })
+      .where(eq(projectFiles.id, id))
+      .returning();
+    return updatedProjectFile || undefined;
+  }
+
+  async deleteProjectFile(id: number): Promise<boolean> {
+    await db.update(projectFiles).set({ isActive: false }).where(eq(projectFiles.id, id));
     return true;
   }
 }
