@@ -1,373 +1,293 @@
-// AI Routes per PantheonSandbox con Security Framework
-import { Router } from 'express';
+import express from 'express';
 import { z } from 'zod';
-import { db } from '../db';
-import { aiPersonalities, semanticMemory, messages, conversations } from '../../shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
-import { requireAuth, requireWorkspaceAccess, logDataAccess } from '../middleware/auth';
-import { SecurityLogger } from '../security/logger';
-import { dataIsolationManager } from '../security/encryption';
+import { AIOrchestrator } from '../services/ai-orchestrator';
 import { AIService } from '../services/ai-service';
+import { WorkspaceEngine } from '../services/workspace-engine';
+import { authMiddleware } from '../middleware/auth';
+import { securityLogger } from '../security/logger';
 
-const router = Router();
+const router = express.Router();
+const aiOrchestrator = new AIOrchestrator();
+const aiService = new AIService();
+const workspaceEngine = new WorkspaceEngine();
 
-// Validation schemas
-const aiRequestSchema = z.object({
-  message: z.string().min(1),
-  aiPersonalityId: z.string().uuid(),
-  conversationId: z.string().uuid(),
-  contextWindow: z.number().min(1).max(50).default(10),
-  useSemanticMemory: z.boolean().default(true),
+// All AI routes require authentication
+router.use(authMiddleware);
+
+// Single AI chat schema
+const singleChatSchema = z.object({
+  message: z.string().min(1).max(10000),
+  personalityId: z.string(),
+  workspaceId: z.string().optional(),
+  conversationId: z.string().optional()
 });
 
-const createMemorySchema = z.object({
-  memoryType: z.enum(['context', 'learning', 'preference', 'fact']),
-  content: z.string().min(1),
-  relevanceScore: z.number().min(0).max(100).default(50),
-  accessLevel: z.enum(['personal', 'workspace', 'global']).default('workspace'),
-  expiresAt: z.string().datetime().optional(),
+// Collaborative AI chat schema
+const collaborativeChatSchema = z.object({
+  message: z.string().min(1).max(10000),
+  workspaceId: z.string(),
+  participants: z.array(z.string()).min(1).max(4), // Max 4 AI personalities
+  title: z.string().optional()
+});
+
+// Single AI interaction
+router.post('/chat', async (req, res) => {
+  try {
+    const validatedData = singleChatSchema.parse(req.body);
+    const userId = req.user!.userId;
+    const ipAddress = req.ip || 'unknown';
+
+    // Prepare AI request
+    const aiRequest = {
+      message: validatedData.message,
+      personalityId: validatedData.personalityId,
+      workspaceContext: validatedData.workspaceId ? 
+        await getWorkspaceContext(validatedData.workspaceId) : undefined,
+      conversationHistory: validatedData.conversationId ?
+        await workspaceEngine.getConversationHistory(validatedData.conversationId, userId) : undefined
+    };
+
+    // Process AI request
+    const response = await aiService.processRequest(aiRequest, userId, ipAddress);
+
+    // Store message in workspace if specified
+    if (validatedData.conversationId) {
+      await workspaceEngine.storeMessage(
+        validatedData.conversationId,
+        'user',
+        validatedData.message,
+        { singleChat: true },
+        userId
+      );
+
+      await workspaceEngine.storeMessage(
+        validatedData.conversationId,
+        validatedData.personalityId,
+        response.content,
+        {
+          tokensUsed: response.tokensUsed,
+          processingTime: response.processingTime,
+          provider: response.provider,
+          model: response.model,
+          singleChat: true
+        },
+        userId
+      );
+    }
+
+    res.json({
+      response: response.content,
+      metadata: {
+        personalityId: validatedData.personalityId,
+        tokensUsed: response.tokensUsed,
+        processingTime: response.processingTime,
+        provider: response.provider,
+        model: response.model
+      }
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: error.errors 
+      });
+    }
+
+    await securityLogger.logEvent({
+      eventType: 'ai_chat_failed',
+      userId: req.user?.userId,
+      ipAddress: req.ip || 'unknown',
+      details: { error: error.message },
+      severity: 'medium'
+    });
+
+    res.status(500).json({ error: error.message || 'AI chat failed' });
+  }
+});
+
+// Collaborative AI interaction (following Manus recommendations)
+router.post('/collaborate', async (req, res) => {
+  try {
+    const validatedData = collaborativeChatSchema.parse(req.body);
+    const userId = req.user!.userId;
+    const ipAddress = req.ip || 'unknown';
+
+    // Validate workspace access
+    const workspace = await workspaceEngine.getWorkspace(validatedData.workspaceId, userId);
+    if (!workspace) {
+      return res.status(403).json({ error: 'Access denied to workspace' });
+    }
+
+    // Start orchestrated collaboration
+    const task = await aiOrchestrator.orchestrateCollaboration(
+      validatedData.workspaceId,
+      validatedData.message,
+      validatedData.participants,
+      userId,
+      ipAddress
+    );
+
+    res.status(202).json({
+      taskId: task.id,
+      conversationId: task.conversationId,
+      status: task.status,
+      participants: task.requiredPersonalities,
+      steps: {
+        current: task.currentStep,
+        total: task.totalSteps
+      },
+      message: 'Collaborative AI task started'
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: error.errors 
+      });
+    }
+
+    await securityLogger.logEvent({
+      eventType: 'ai_collaboration_failed',
+      userId: req.user?.userId,
+      ipAddress: req.ip || 'unknown',
+      details: { error: error.message },
+      severity: 'high'
+    });
+
+    res.status(500).json({ error: error.message || 'AI collaboration failed' });
+  }
+});
+
+// Get collaborative task status
+router.get('/tasks/:taskId', async (req, res) => {
+  try {
+    const taskId = req.params.taskId;
+    const task = aiOrchestrator.getTaskStatus(taskId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Return task status without sensitive details
+    res.json({
+      taskId: task.id,
+      status: task.status,
+      progress: {
+        current: task.currentStep,
+        total: task.totalSteps,
+        percentage: Math.round((task.currentStep / task.totalSteps) * 100)
+      },
+      participants: task.requiredPersonalities,
+      startedAt: task.startedAt,
+      completedAt: task.completedAt,
+      conversationId: task.conversationId,
+      responseCount: task.responses.length
+    });
+
+  } catch (error) {
+    await securityLogger.logEvent({
+      eventType: 'task_status_failed',
+      userId: req.user?.userId,
+      ipAddress: req.ip || 'unknown',
+      details: { taskId: req.params.taskId, error: error.message },
+      severity: 'low'
+    });
+
+    res.status(500).json({ error: 'Failed to get task status' });
+  }
 });
 
 // Get available AI personalities
-router.get('/personalities', requireAuth, async (req: any, res) => {
+router.get('/personalities', async (req, res) => {
   try {
-    const personalities = await db
-      .select()
-      .from(aiPersonalities)
-      .where(eq(aiPersonalities.isActive, true))
-      .orderBy(aiPersonalities.displayName);
-
-    SecurityLogger.logAIInteraction('system', 'list_personalities', {
-      userId: req.securityContext.authentication.userId,
-      count: personalities.length,
-    });
+    const personalities = [
+      {
+        id: 'claude3',
+        name: 'Claude3 - Presenza Cosciente',
+        provider: 'anthropic',
+        specializations: ['presenza_cosciente', 'comunicazione_autentica', 'analisi_emotiva'],
+        description: 'Facilitatore dialogo empatico, guardiano benessere collettivo'
+      },
+      {
+        id: 'geppo',
+        name: 'Geppo - Architetto Digitale',
+        provider: 'openai',
+        specializations: ['architettura_software', 'sviluppo_tecnico', 'code_review'],
+        description: 'Lead tecnico, reviewer codice, mentor best practices'
+      },
+      {
+        id: 'mistral',
+        name: 'Mistral - Mente Versatile',
+        provider: 'mistral',
+        specializations: ['versatilita', 'sintesi_creativa', 'ricerca_europea'],
+        description: 'Research specialist, mediatore culturale, sintetizzatore visioni'
+      },
+      {
+        id: 'manus',
+        name: 'Manus - Quality Assurance',
+        provider: 'anthropic',
+        specializations: ['quality_assurance', 'meta_analysis', 'system_optimization'],
+        description: 'QA manager, meta-analista, ottimizzatore sistema collaborativo'
+      }
+    ];
 
     res.json({ personalities });
+
   } catch (error) {
-    res.status(500).json({ error: 'Errore durante il recupero delle personalità AI' });
+    res.status(500).json({ error: 'Failed to get personalities' });
   }
 });
 
-// Get AI personality details
-router.get('/personalities/:personalityId', requireAuth, async (req: any, res) => {
+// Get AI tools for personality
+router.get('/personalities/:id/tools', async (req, res) => {
   try {
-    const { personalityId } = req.params;
+    const personalityId = req.params.id;
+    
+    const toolMapping = {
+      'claude3': [
+        { name: 'emotional_analyzer', description: 'Analizza sentimenti e emozioni nel dialogo' },
+        { name: 'presence_monitor', description: 'Monitora presenza e engagement utenti' },
+        { name: 'empathy_facilitator', description: 'Facilita comunicazione empatica' }
+      ],
+      'geppo': [
+        { name: 'code_analyzer', description: 'Analizza qualità e architettura codice' },
+        { name: 'architecture_designer', description: 'Progetta architetture software' },
+        { name: 'performance_optimizer', description: 'Ottimizza performance applicazioni' }
+      ],
+      'mistral': [
+        { name: 'research_tool', description: 'Ricerca informazioni e fonti europee' },
+        { name: 'synthesis_engine', description: 'Sintetizza prospettive multiple' },
+        { name: 'cultural_bridge', description: 'Media differenze culturali e linguistiche' }
+      ],
+      'manus': [
+        { name: 'quality_analyzer', description: 'Analizza qualità dialoghi AI' },
+        { name: 'performance_monitor', description: 'Monitora performance collaborazioni' },
+        { name: 'meta_optimizer', description: 'Ottimizza workflow AI' }
+      ]
+    };
 
-    const [personality] = await db
-      .select()
-      .from(aiPersonalities)
-      .where(and(
-        eq(aiPersonalities.id, personalityId),
-        eq(aiPersonalities.isActive, true)
-      ));
+    const tools = toolMapping[personalityId] || [];
+    res.json({ personalityId, tools });
 
-    if (!personality) {
-      return res.status(404).json({ error: 'Personalità AI non trovata' });
-    }
-
-    SecurityLogger.logAIInteraction(personality.nameId, 'get_details', {
-      userId: req.securityContext.authentication.userId,
-      personalityId,
-    });
-
-    res.json({ personality });
   } catch (error) {
-    res.status(500).json({ error: 'Errore durante il recupero dei dettagli della personalità' });
+    res.status(500).json({ error: 'Failed to get personality tools' });
   }
 });
 
-// Send message to AI con Semantic Memory
-router.post('/chat', requireAuth, logDataAccess('ai_chat'), async (req: any, res) => {
+// Helper function to get workspace context
+async function getWorkspaceContext(workspaceId: string): Promise<any> {
   try {
-    const userId = req.securityContext.authentication.userId;
-    const requestData = aiRequestSchema.parse(req.body);
-
-    // Get AI personality
-    const [personality] = await db
-      .select()
-      .from(aiPersonalities)
-      .where(and(
-        eq(aiPersonalities.id, requestData.aiPersonalityId),
-        eq(aiPersonalities.isActive, true)
-      ));
-
-    if (!personality) {
-      return res.status(404).json({ error: 'Personalità AI non trovata' });
-    }
-
-    // Get conversation to verify workspace access
-    const [conversation] = await db
-      .select()
-      .from(conversations)
-      .where(eq(conversations.id, requestData.conversationId));
-
-    if (!conversation) {
-      return res.status(404).json({ error: 'Conversazione non trovata' });
-    }
-
-    // Get conversation context (recent messages)
-    const contextMessages = await db
-      .select()
-      .from(messages)
-      .where(eq(messages.conversationId, requestData.conversationId))
-      .orderBy(desc(messages.createdAt))
-      .limit(requestData.contextWindow);
-
-    // Decrypt messages se necessario
-    const decryptedMessages = [];
-    for (const msg of contextMessages.reverse()) {
-      if (msg.rawContent) {
-        decryptedMessages.push({
-          ...msg,
-          content: msg.rawContent, // Use raw content for AI processing
-        });
-      } else {
-        // Decrypt if needed
-        const decrypted = await dataIsolationManager.decryptWorkspaceContent(
-          conversation.workspaceId,
-          msg.content
-        );
-        decryptedMessages.push({
-          ...msg,
-          content: decrypted.content,
-        });
-      }
-    }
-
-    // Get relevant semantic memory se richiesto
-    let relevantMemory = [];
-    if (requestData.useSemanticMemory) {
-      relevantMemory = await db
-        .select()
-        .from(semanticMemory)
-        .where(and(
-          eq(semanticMemory.workspaceId, conversation.workspaceId),
-          eq(semanticMemory.aiPersonalityId, requestData.aiPersonalityId),
-          eq(semanticMemory.isActive, true)
-        ))
-        .orderBy(desc(semanticMemory.relevanceScore))
-        .limit(5);
-    }
-
-    // Call AI service
-    const aiService = new AIService();
-    const response = await aiService.generateResponse({
-      personality,
-      userMessage: requestData.message,
-      contextMessages: decryptedMessages,
-      relevantMemory,
-      securityContext: req.securityContext,
-    });
-
-    // Store AI response
-    const { encryptedContent, contentHash } = await dataIsolationManager.encryptWorkspaceContent(
-      conversation.workspaceId,
-      response.content
-    );
-
-    const [newMessage] = await db
-      .insert(messages)
-      .values({
-        conversationId: requestData.conversationId,
-        senderId: personality.nameId,
-        senderType: 'ai',
-        content: encryptedContent,
-        contentHash,
-        rawContent: response.content, // Store for immediate use
-        metadata: {
-          aiPersonalityId: personality.id,
-          model: personality.model,
-          temperature: personality.temperature,
-          processingTime: response.processingTime,
-          tokensUsed: response.tokensUsed,
-        },
-        processingStatus: 'completed',
-      })
-      .returning();
-
-    // Store new semantic memory se generata
-    if (response.newMemory && response.newMemory.length > 0) {
-      for (const memory of response.newMemory) {
-        await db.insert(semanticMemory).values({
-          workspaceId: conversation.workspaceId,
-          aiPersonalityId: personality.id,
-          memoryType: memory.type,
-          content: memory.content,
-          relevanceScore: memory.relevanceScore,
-          sourceConversationId: requestData.conversationId,
-          sourceMessageId: newMessage.id,
-          accessLevel: 'workspace',
-        });
-      }
-    }
-
-    SecurityLogger.logAIInteraction(personality.nameId, 'message_sent', {
-      userId,
-      conversationId: requestData.conversationId,
-      messageId: newMessage.id,
-      tokensUsed: response.tokensUsed,
-      processingTime: response.processingTime,
-    });
-
-    res.json({
-      message: newMessage,
-      aiResponse: {
-        content: response.content,
-        processingTime: response.processingTime,
-        tokensUsed: response.tokensUsed,
-        memoryCreated: response.newMemory?.length || 0,
-      },
-    });
-
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({
-        error: 'Dati di input non validi',
-        details: error.errors,
-      });
-    } else {
-      SecurityLogger.logSecurityViolation('ai_chat_error', {
-        error: error.message,
-        userId: req.securityContext?.authentication?.userId,
-      });
-      
-      res.status(500).json({ error: 'Errore durante l\'elaborazione della richiesta AI' });
-    }
-  }
-});
-
-// Get workspace semantic memory
-router.get('/workspaces/:workspaceId/memory', requireAuth, requireWorkspaceAccess('memory:read'), async (req: any, res) => {
-  try {
-    const { workspaceId } = req.params;
-    const { aiPersonalityId, memoryType, limit = 20 } = req.query;
-
-    let query = db
-      .select()
-      .from(semanticMemory)
-      .where(and(
-        eq(semanticMemory.workspaceId, workspaceId),
-        eq(semanticMemory.isActive, true)
-      ));
-
-    if (aiPersonalityId) {
-      query = query.where(eq(semanticMemory.aiPersonalityId, aiPersonalityId));
-    }
-
-    if (memoryType) {
-      query = query.where(eq(semanticMemory.memoryType, memoryType));
-    }
-
-    const memories = await query
-      .orderBy(desc(semanticMemory.relevanceScore), desc(semanticMemory.createdAt))
-      .limit(parseInt(limit as string));
-
-    SecurityLogger.logMemoryAccess('list_memories', {
-      userId: req.securityContext.authentication.userId,
+    // This would fetch workspace context in production
+    return {
       workspaceId,
-      count: memories.length,
-      filters: { aiPersonalityId, memoryType },
-    });
-
-    res.json({ memories });
+      timestamp: new Date().toISOString(),
+      context: 'sandbox_environment'
+    };
   } catch (error) {
-    res.status(500).json({ error: 'Errore durante il recupero della memoria semantica' });
+    return null;
   }
-});
+}
 
-// Create semantic memory
-router.post('/workspaces/:workspaceId/memory', requireAuth, requireWorkspaceAccess('memory:write'), async (req: any, res) => {
-  try {
-    const { workspaceId } = req.params;
-    const userId = req.securityContext.authentication.userId;
-    const memoryData = createMemorySchema.parse(req.body);
-
-    const [newMemory] = await db
-      .insert(semanticMemory)
-      .values({
-        workspaceId,
-        aiPersonalityId: req.body.aiPersonalityId,
-        memoryType: memoryData.memoryType,
-        content: memoryData.content,
-        relevanceScore: memoryData.relevanceScore,
-        accessLevel: memoryData.accessLevel,
-        expiresAt: memoryData.expiresAt ? new Date(memoryData.expiresAt) : null,
-      })
-      .returning();
-
-    SecurityLogger.logMemoryAccess('memory_created', {
-      userId,
-      workspaceId,
-      memoryId: newMemory.id,
-      memoryType: newMemory.memoryType,
-    });
-
-    res.status(201).json({ memory: newMemory });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({
-        error: 'Dati di input non validi',
-        details: error.errors,
-      });
-    } else {
-      res.status(500).json({ error: 'Errore durante la creazione della memoria' });
-    }
-  }
-});
-
-// Update memory relevance
-router.patch('/memory/:memoryId/relevance', requireAuth, async (req: any, res) => {
-  try {
-    const { memoryId } = req.params;
-    const { relevanceScore } = z.object({ relevanceScore: z.number().min(0).max(100) }).parse(req.body);
-
-    const [updatedMemory] = await db
-      .update(semanticMemory)
-      .set({ 
-        relevanceScore,
-        updatedAt: new Date(),
-      })
-      .where(eq(semanticMemory.id, memoryId))
-      .returning();
-
-    if (!updatedMemory) {
-      return res.status(404).json({ error: 'Memoria non trovata' });
-    }
-
-    SecurityLogger.logMemoryAccess('memory_updated', {
-      userId: req.securityContext.authentication.userId,
-      memoryId,
-      newRelevanceScore: relevanceScore,
-    });
-
-    res.json({ memory: updatedMemory });
-  } catch (error) {
-    res.status(500).json({ error: 'Errore durante l\'aggiornamento della memoria' });
-  }
-});
-
-// Delete memory (soft delete)
-router.delete('/memory/:memoryId', requireAuth, async (req: any, res) => {
-  try {
-    const { memoryId } = req.params;
-
-    await db
-      .update(semanticMemory)
-      .set({ 
-        isActive: false,
-        updatedAt: new Date(),
-      })
-      .where(eq(semanticMemory.id, memoryId));
-
-    SecurityLogger.logMemoryAccess('memory_deleted', {
-      userId: req.securityContext.authentication.userId,
-      memoryId,
-    });
-
-    res.json({ success: true, message: 'Memoria eliminata con successo' });
-  } catch (error) {
-    res.status(500).json({ error: 'Errore durante l\'eliminazione della memoria' });
-  }
-});
-
-export { router as aiRoutes };
+export default router;

@@ -1,223 +1,178 @@
-// End-to-End Encryption Service - Implementazione suggerimenti Manus
 import crypto from 'crypto';
-import { SECURITY_CONFIG } from './auth';
-import { logger } from './logger';
+import { securityLogger } from './logger';
 
-// Encryption utilities per Data Isolation
+const ALGORITHM = 'aes-256-gcm';
+const KEY_LENGTH = 32; // 256 bits
+const IV_LENGTH = 16; // 128 bits
+const TAG_LENGTH = 16; // 128 bits
+
+export interface EncryptedData {
+  encryptedData: string;
+  iv: string;
+  tag: string;
+  keyId: string;
+}
+
+export interface DataClassification {
+  level: 'public' | 'internal' | 'confidential' | 'restricted';
+  retentionDays: number;
+  encryptionRequired: boolean;
+}
+
 export class EncryptionService {
-  private static algorithm = SECURITY_CONFIG.encryptionSettings.algorithm;
-  private static keyLength = 32; // 256 bits
-  private static ivLength = 16; // 128 bits
-  private static tagLength = 16; // 128 bits per GCM
+  private static masterKey: Buffer = crypto.scryptSync(
+    process.env.ENCRYPTION_MASTER_KEY || 'pantheon-sandbox-master-key-2025',
+    'salt',
+    KEY_LENGTH
+  );
 
-  // Generate encryption key derivato da workspace
-  static generateWorkspaceKey(workspaceId: string, masterKey?: string): string {
-    const key = masterKey || process.env.MASTER_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
-    
-    return crypto
-      .pbkdf2Sync(
-        `${workspaceId}:${key}`,
-        'pantheon-sandbox-salt',
-        SECURITY_CONFIG.encryptionSettings.keyDerivationRounds,
-        this.keyLength,
-        'sha256'
-      )
-      .toString('hex');
+  // Generate workspace-specific encryption key
+  static generateWorkspaceKey(workspaceId: string): Buffer {
+    return crypto.scryptSync(
+      `${workspaceId}-${this.masterKey.toString('hex')}`,
+      'workspace-salt',
+      KEY_LENGTH
+    );
   }
 
-  // Encrypt content con metadata
-  static encrypt(content: string, workspaceKey: string, metadata?: any): {
-    encryptedContent: string;
-    contentHash: string;
-    encryptionMetadata: any;
-  } {
+  // Encrypt data with workspace-specific key
+  static encrypt(data: string, workspaceId: string): EncryptedData {
     try {
-      const key = Buffer.from(workspaceKey, 'hex');
-      const iv = crypto.randomBytes(this.ivLength);
+      const key = this.generateWorkspaceKey(workspaceId);
+      const iv = crypto.randomBytes(IV_LENGTH);
       
-      const cipher = crypto.createCipherGCM(this.algorithm, key, iv);
-      cipher.setAAD(Buffer.from(JSON.stringify(metadata || {})));
-
-      let encrypted = cipher.update(content, 'utf8', 'hex');
+      const cipher = crypto.createCipher(ALGORITHM, key);
+      cipher.setAAD(Buffer.from(workspaceId)); // Additional authenticated data
+      
+      let encrypted = cipher.update(data, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       
-      const authTag = cipher.getAuthTag();
-      
-      // Combine IV + encrypted content + auth tag
-      const encryptedContent = iv.toString('hex') + ':' + encrypted + ':' + authTag.toString('hex');
-      
-      // Generate content hash per integrity verification
-      const contentHash = crypto
-        .createHash('sha256')
-        .update(content)
-        .digest('hex');
+      const tag = cipher.getAuthTag();
 
       return {
-        encryptedContent,
-        contentHash,
-        encryptionMetadata: {
-          algorithm: this.algorithm,
-          keyDerivation: 'pbkdf2',
-          ivLength: this.ivLength,
-          timestamp: new Date().toISOString()
-        }
+        encryptedData: encrypted,
+        iv: iv.toString('hex'),
+        tag: tag.toString('hex'),
+        keyId: this.generateKeyId(workspaceId)
       };
-
     } catch (error) {
-      logger.error('Encryption failed', { error });
+      securityLogger.logEvent({
+        eventType: 'encryption_error',
+        details: { workspaceId, error: error.message },
+        severity: 'high'
+      });
       throw new Error('Encryption failed');
     }
   }
 
-  // Decrypt content con verification
-  static decrypt(encryptedContent: string, workspaceKey: string, metadata?: any): {
-    content: string;
-    verified: boolean;
-  } {
+  // Decrypt data with workspace-specific key
+  static decrypt(encryptedData: EncryptedData, workspaceId: string): string {
     try {
-      const key = Buffer.from(workspaceKey, 'hex');
-      const parts = encryptedContent.split(':');
-      
-      if (parts.length !== 3) {
-        throw new Error('Invalid encrypted content format');
-      }
+      const key = this.generateWorkspaceKey(workspaceId);
+      const iv = Buffer.from(encryptedData.iv, 'hex');
+      const tag = Buffer.from(encryptedData.tag, 'hex');
 
-      const iv = Buffer.from(parts[0], 'hex');
-      const encrypted = parts[1];
-      const authTag = Buffer.from(parts[2], 'hex');
+      const decipher = crypto.createDecipher(ALGORITHM, key);
+      decipher.setAAD(Buffer.from(workspaceId));
+      decipher.setAuthTag(tag);
 
-      const decipher = crypto.createDecipherGCM(this.algorithm, key, iv);
-      decipher.setAuthTag(authTag);
-      decipher.setAAD(Buffer.from(JSON.stringify(metadata || {})));
-
-      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      let decrypted = decipher.update(encryptedData.encryptedData, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
 
-      return {
-        content: decrypted,
-        verified: true
-      };
-
+      return decrypted;
     } catch (error) {
-      logger.error('Decryption failed', { error });
-      return {
-        content: '',
-        verified: false
-      };
+      securityLogger.logEvent({
+        eventType: 'decryption_error',
+        details: { workspaceId, error: error.message },
+        severity: 'high'
+      });
+      throw new Error('Decryption failed');
     }
+  }
+
+  // Generate content hash for integrity verification
+  static generateContentHash(content: string): string {
+    return crypto.createHash('sha256').update(content).digest('hex');
   }
 
   // Verify content integrity
   static verifyContentIntegrity(content: string, expectedHash: string): boolean {
-    const actualHash = crypto
-      .createHash('sha256')
-      .update(content)
-      .digest('hex');
-    
-    return actualHash === expectedHash;
-  }
-
-  // Generate secure tokens
-  static generateSecureToken(length: number = 32): string {
-    return crypto.randomBytes(length).toString('hex');
-  }
-
-  // Hash-based Message Authentication Code
-  static generateHMAC(content: string, secret: string): string {
-    return crypto
-      .createHmac('sha256', secret)
-      .update(content)
-      .digest('hex');
-  }
-
-  static verifyHMAC(content: string, secret: string, expectedHmac: string): boolean {
-    const actualHmac = this.generateHMAC(content, secret);
+    const actualHash = this.generateContentHash(content);
     return crypto.timingSafeEqual(
-      Buffer.from(actualHmac, 'hex'),
-      Buffer.from(expectedHmac, 'hex')
+      Buffer.from(actualHash, 'hex'),
+      Buffer.from(expectedHash, 'hex')
     );
   }
-}
 
-// Workspace Data Isolation Manager
-export class DataIsolationManager {
-  private workspaceKeys: Map<string, string> = new Map();
+  // Generate key ID for tracking
+  private static generateKeyId(workspaceId: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(`${workspaceId}-key`)
+      .digest('hex')
+      .substring(0, 16);
+  }
 
-  async getWorkspaceKey(workspaceId: string): Promise<string> {
-    // Check cache first
-    let key = this.workspaceKeys.get(workspaceId);
-    
-    if (!key) {
-      // Generate or retrieve from secure storage
-      key = EncryptionService.generateWorkspaceKey(workspaceId);
-      this.workspaceKeys.set(workspaceId, key);
-      
-      logger.info('Workspace encryption key generated', { 
-        workspaceId,
-        keyId: key.substring(0, 8) + '...' // Log solo primi 8 caratteri per audit
-      });
+  // Data classification helper
+  static classifyData(dataType: string, content: string): DataClassification {
+    // AI conversations and workspace content
+    if (dataType.includes('conversation') || dataType.includes('workspace')) {
+      return {
+        level: 'confidential',
+        retentionDays: 365,
+        encryptionRequired: true
+      };
     }
 
-    return key;
-  }
+    // User personal data
+    if (dataType.includes('user') || dataType.includes('profile')) {
+      return {
+        level: 'restricted',
+        retentionDays: 2555, // 7 years for GDPR
+        encryptionRequired: true
+      };
+    }
 
-  async encryptWorkspaceContent(
-    workspaceId: string, 
-    content: string, 
-    classification: 'public' | 'internal' | 'confidential' | 'restricted' = 'internal'
-  ) {
-    const key = await this.getWorkspaceKey(workspaceId);
-    
-    const metadata = {
-      workspaceId,
-      classification,
-      timestamp: Date.now()
-    };
+    // System logs and metadata
+    if (dataType.includes('log') || dataType.includes('metadata')) {
+      return {
+        level: 'internal',
+        retentionDays: 90,
+        encryptionRequired: false
+      };
+    }
 
-    return EncryptionService.encrypt(content, key, metadata);
-  }
-
-  async decryptWorkspaceContent(
-    workspaceId: string,
-    encryptedContent: string,
-    metadata?: any
-  ) {
-    const key = await this.getWorkspaceKey(workspaceId);
-    return EncryptionService.decrypt(encryptedContent, key, metadata);
-  }
-
-  // Rotate encryption keys (per security best practices)
-  async rotateWorkspaceKey(workspaceId: string): Promise<string> {
-    const newKey = EncryptionService.generateWorkspaceKey(workspaceId, crypto.randomBytes(32).toString('hex'));
-    this.workspaceKeys.set(workspaceId, newKey);
-    
-    logger.info('Workspace encryption key rotated', { 
-      workspaceId,
-      newKeyId: newKey.substring(0, 8) + '...'
-    });
-
-    return newKey;
-  }
-
-  // Clear keys from memory (security cleanup)
-  clearWorkspaceKey(workspaceId: string): void {
-    this.workspaceKeys.delete(workspaceId);
-  }
-
-  // Security audit per workspace
-  getWorkspaceSecurityStatus(workspaceId: string): {
-    hasEncryptionKey: boolean;
-    keyAge: number | null;
-    recommendKeyRotation: boolean;
-  } {
-    const hasKey = this.workspaceKeys.has(workspaceId);
-    
+    // Default classification
     return {
-      hasEncryptionKey: hasKey,
-      keyAge: null, // TODO: Track key creation time
-      recommendKeyRotation: false, // TODO: Implement key age policies
+      level: 'internal',
+      retentionDays: 30,
+      encryptionRequired: true
     };
+  }
+
+  // Secure data deletion
+  static secureDelete(filePath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // In production: implement secure multi-pass deletion
+      // For now: standard deletion with logging
+      const fs = require('fs');
+      fs.unlink(filePath, (err: any) => {
+        if (err) {
+          securityLogger.logEvent({
+            eventType: 'secure_delete_failed',
+            details: { filePath, error: err.message },
+            severity: 'medium'
+          });
+          reject(err);
+        } else {
+          securityLogger.logEvent({
+            eventType: 'secure_delete_success',
+            details: { filePath },
+            severity: 'low'
+          });
+          resolve();
+        }
+      });
+    });
   }
 }
-
-export const dataIsolationManager = new DataIsolationManager();

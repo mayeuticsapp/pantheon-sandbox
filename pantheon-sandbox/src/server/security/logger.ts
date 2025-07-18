@@ -1,218 +1,149 @@
-// Security Logging System - Implementazione suggerimenti Manus
 import winston from 'winston';
-import { SECURITY_CONFIG } from './auth';
+import { db } from '../db';
+import { securityEvents } from '../../shared/schema';
 
-// Security-focused logger con GDPR compliance
-export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+// Winston configuration for security logging
+const securityWinston = winston.createLogger({
+  level: 'info',
   format: winston.format.combine(
-    winston.format.timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss'
-    }),
+    winston.format.timestamp(),
     winston.format.errors({ stack: true }),
-    winston.format.json(),
-    winston.format.printf(({ timestamp, level, message, ...metadata }) => {
-      // Security sanitization - rimuovi dati sensibili dai log
-      const sanitized = sanitizeLogData(metadata);
-      return JSON.stringify({
-        timestamp,
-        level,
-        message,
-        ...sanitized
-      });
-    })
+    winston.format.json()
   ),
-  defaultMeta: { 
-    service: 'pantheon-sandbox',
-    environment: process.env.NODE_ENV || 'development'
-  },
+  defaultMeta: { service: 'pantheon-sandbox-security' },
   transports: [
-    // Console per development
+    new winston.transports.File({ 
+      filename: 'logs/security-error.log', 
+      level: 'error' 
+    }),
+    new winston.transports.File({ 
+      filename: 'logs/security.log' 
+    }),
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.simple()
       )
-    }),
-
-    // File per security events
-    new winston.transports.File({
-      filename: 'logs/security.log',
-      level: 'warn',
-      maxsize: 10485760, // 10MB
-      maxFiles: 5,
-      tailable: true
-    }),
-
-    // File per tutti i log
-    new winston.transports.File({
-      filename: 'logs/combined.log',
-      maxsize: 10485760, // 10MB
-      maxFiles: 5,
-      tailable: true
-    }),
-
-    // File per errori
-    new winston.transports.File({
-      filename: 'logs/error.log',
-      level: 'error',
-      maxsize: 10485760, // 10MB
-      maxFiles: 5,
-      tailable: true
     })
   ]
 });
 
-// Funzione per sanitizzare dati sensibili nei log
-function sanitizeLogData(data: any): any {
-  const sensitiveFields = [
-    'password', 'passwordHash', 'token', 'sessionToken', 
-    'secret', 'key', 'apiKey', 'encryptionKey',
-    'mfaSecret', 'refreshToken', 'accessToken'
-  ];
-
-  const sanitized = { ...data };
-
-  function recursiveSanitize(obj: any, path: string = ''): any {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map((item, index) => recursiveSanitize(item, `${path}[${index}]`));
-    }
-
-    const result: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      const fullPath = path ? `${path}.${key}` : key;
-      
-      if (sensitiveFields.some(field => key.toLowerCase().includes(field.toLowerCase()))) {
-        result[key] = '[REDACTED]';
-      } else if (typeof value === 'object' && value !== null) {
-        result[key] = recursiveSanitize(value, fullPath);
-      } else {
-        result[key] = value;
-      }
-    }
-    return result;
-  }
-
-  return recursiveSanitize(sanitized);
+export interface SecurityEvent {
+  eventType: string;
+  userId?: number;
+  ipAddress?: string;
+  userAgent?: string;
+  details?: any;
+  severity: 'low' | 'medium' | 'high' | 'critical';
 }
 
-// Security event logger specifico
 export class SecurityLogger {
-  
-  static logAuthentication(event: 'success' | 'failure', details: any) {
-    const level = event === 'success' ? 'info' : 'warn';
-    logger.log(level, `Authentication ${event}`, {
-      category: 'authentication',
+  // Log security event to database and Winston
+  async logEvent(event: SecurityEvent): Promise<void> {
+    try {
+      // Store in database
+      await db.insert(securityEvents).values({
+        eventType: event.eventType,
+        userId: event.userId,
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+        details: event.details ? JSON.stringify(event.details) : null,
+        severity: event.severity,
+        timestamp: new Date()
+      });
+
+      // Log with Winston
+      securityWinston.log({
+        level: this.getWinstonLevel(event.severity),
+        message: `Security Event: ${event.eventType}`,
+        ...event
+      });
+
+      // Send alerts for critical events
+      if (event.severity === 'critical') {
+        await this.sendAlert(event);
+      }
+
+    } catch (error) {
+      securityWinston.error('Failed to log security event', { error, event });
+    }
+  }
+
+  // Convert severity to Winston level
+  private getWinstonLevel(severity: string): string {
+    switch (severity) {
+      case 'critical': return 'error';
+      case 'high': return 'warn';
+      case 'medium': return 'info';
+      case 'low': return 'debug';
+      default: return 'info';
+    }
+  }
+
+  // Send real-time alerts for critical events
+  private async sendAlert(event: SecurityEvent): Promise<void> {
+    // In production: integrate with alerting systems (email, Slack, etc.)
+    securityWinston.error('CRITICAL SECURITY EVENT', { 
       event,
-      ...details
+      timestamp: new Date().toISOString(),
+      alert: 'IMMEDIATE_ATTENTION_REQUIRED'
     });
   }
 
-  static logAuthorization(event: 'granted' | 'denied', details: any) {
-    const level = event === 'granted' ? 'info' : 'warn';
-    logger.log(level, `Authorization ${event}`, {
-      category: 'authorization',
-      event,
-      ...details
+  // Log authentication events
+  async logAuth(type: 'login' | 'logout' | 'register', userId: number, ipAddress: string, success: boolean = true): Promise<void> {
+    await this.logEvent({
+      eventType: `auth_${type}`,
+      userId,
+      ipAddress,
+      details: { success },
+      severity: success ? 'low' : 'medium'
     });
   }
 
-  static logDataAccess(operation: string, details: any) {
-    logger.info(`Data access: ${operation}`, {
-      category: 'data_access',
-      operation,
-      ...details
+  // Log workspace access
+  async logWorkspaceAccess(userId: number, workspaceId: string, action: string, ipAddress: string): Promise<void> {
+    await this.logEvent({
+      eventType: 'workspace_access',
+      userId,
+      ipAddress,
+      details: { workspaceId, action },
+      severity: 'low'
     });
   }
 
-  static logSecurityViolation(violation: string, details: any) {
-    logger.error(`Security violation: ${violation}`, {
-      category: 'security_violation',
-      violation,
-      severity: 'high',
-      ...details
+  // Log AI interactions
+  async logAIInteraction(userId: number, personalityId: string, tokensUsed: number, ipAddress: string): Promise<void> {
+    await this.logEvent({
+      eventType: 'ai_interaction',
+      userId,
+      ipAddress,
+      details: { personalityId, tokensUsed },
+      severity: 'low'
     });
   }
 
-  static logAIInteraction(aiName: string, operation: string, details: any) {
-    logger.info(`AI interaction: ${aiName} - ${operation}`, {
-      category: 'ai_interaction',
-      aiName,
-      operation,
-      ...details
+  // Log data access
+  async logDataAccess(userId: number, dataType: string, action: string, ipAddress: string): Promise<void> {
+    await this.logEvent({
+      eventType: 'data_access',
+      userId,
+      ipAddress,
+      details: { dataType, action },
+      severity: action === 'delete' ? 'medium' : 'low'
     });
   }
 
-  static logWorkspaceAccess(action: string, details: any) {
-    logger.info(`Workspace access: ${action}`, {
-      category: 'workspace_access',
-      action,
-      ...details
-    });
-  }
-
-  static logMemoryAccess(action: string, details: any) {
-    logger.info(`Memory access: ${action}`, {
-      category: 'memory_access',
-      action,
-      ...details
-    });
-  }
-
-  static logComplianceEvent(event: string, details: any) {
-    logger.info(`Compliance event: ${event}`, {
-      category: 'compliance',
-      event,
-      compliance_mode: SECURITY_CONFIG.auditSettings.complianceMode,
-      ...details
-    });
-  }
-}
-
-// Express middleware per request logging
-export function requestLogger(req: any, res: any, next: any) {
-  const startTime = Date.now();
-  
-  // Log della richiesta
-  logger.info('HTTP Request', {
-    method: req.method,
-    url: req.url,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
-    requestId: req.id || 'unknown'
-  });
-
-  // Log della risposta
-  const originalSend = res.send;
-  res.send = function(data: any) {
-    const duration = Date.now() - startTime;
+  // Get security events (for audit purposes)
+  async getSecurityEvents(limit: number = 100, severity?: string) {
+    let query = db.select().from(securityEvents);
     
-    logger.info('HTTP Response', {
-      method: req.method,
-      url: req.url,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      requestId: req.id || 'unknown'
-    });
-
-    return originalSend.call(this, data);
-  };
-
-  next();
+    if (severity) {
+      query = query.where(eq(securityEvents.severity, severity));
+    }
+    
+    return query.orderBy(securityEvents.timestamp).limit(limit);
+  }
 }
 
-// Handler per errori non gestiti
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection', { reason, promise });
-});
-
-export default logger;
+export const securityLogger = new SecurityLogger();

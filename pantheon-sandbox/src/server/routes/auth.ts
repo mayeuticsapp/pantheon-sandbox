@@ -1,254 +1,279 @@
-// Authentication Routes con Zero-Trust Security
-import { Router } from 'express';
+import express from 'express';
 import { z } from 'zod';
-import { authService, validatePasswordPolicy, hashPassword } from '../security/auth';
-import { SecurityLogger } from '../security/logger';
+import { AuthService } from '../security/auth';
+import { securityLogger } from '../security/logger';
 import { db } from '../db';
 import { users, insertUserSchema } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
-const router = Router();
+const router = express.Router();
 
-// Validation schemas
-const loginSchema = z.object({
+// Registration schema
+const registerSchema = z.object({
   username: z.string().min(3).max(50),
-  password: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(8).max(100),
+  role: z.string().optional().default('user')
 });
 
-const registerSchema = insertUserSchema.extend({
-  password: z.string().min(8),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Le password non coincidono",
-  path: ["confirmPassword"],
+// Login schema
+const loginSchema = z.object({
+  username: z.string(),
+  password: z.string()
 });
 
-// Login endpoint con Zero-Trust
-router.post('/login', async (req: any, res) => {
+// Register new user
+router.post('/register', async (req, res) => {
   try {
-    const { username, password } = loginSchema.parse(req.body);
-    
-    const result = await authService.authenticate(username, password, req);
-    
-    if (result.success) {
-      res.json({
-        success: true,
-        token: result.token,
-        user: result.user,
-      });
-    } else {
-      res.status(401).json({
-        success: false,
-        error: result.error,
-      });
-    }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({
-        success: false,
-        error: 'Dati di input non validi',
-        details: error.errors,
-      });
-    } else {
-      SecurityLogger.logSecurityViolation('login_error', {
-        error: error.message,
-        ip: req.ip,
-      });
-      
-      res.status(500).json({
-        success: false,
-        error: 'Errore interno del server',
-      });
-    }
-  }
-});
+    const validatedData = registerSchema.parse(req.body);
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
 
-// Register endpoint con validazione password policy
-router.post('/register', async (req: any, res) => {
-  try {
-    const userData = registerSchema.parse(req.body);
-    
-    // Validate password policy
-    const passwordValidation = validatePasswordPolicy(userData.password);
-    if (!passwordValidation.valid) {
-      return res.status(400).json({
-        success: false,
-        error: 'Password non conforme alle policy di sicurezza',
-        details: passwordValidation.errors,
-      });
-    }
-
-    // Check if user exists
-    const [existingUser] = await db
-      .select()
+    // Check if user already exists
+    const existingUser = await db.select()
       .from(users)
-      .where(eq(users.username, userData.username));
+      .where(eq(users.username, validatedData.username))
+      .limit(1);
 
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        error: 'Username già in uso',
+    if (existingUser.length > 0) {
+      await securityLogger.logEvent({
+        eventType: 'registration_failed',
+        ipAddress,
+        details: { username: validatedData.username, reason: 'user_exists' },
+        severity: 'low'
       });
+      return res.status(400).json({ error: 'Username already exists' });
     }
 
-    // Check if email exists
-    const [existingEmail] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, userData.email));
+    // Hash password
+    const passwordHash = await AuthService.hashPassword(validatedData.password);
 
-    if (existingEmail) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email già registrata',
-      });
-    }
+    // Create user
+    const [newUser] = await db.insert(users).values({
+      username: validatedData.username,
+      email: validatedData.email,
+      passwordHash,
+      role: validatedData.role
+    }).returning({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      role: users.role
+    });
 
-    // Hash password e create user
-    const passwordHash = await hashPassword(userData.password);
-    
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        username: userData.username,
-        email: userData.email,
-        passwordHash,
-        roles: ['user'],
-        isActive: true,
-      })
-      .returning();
+    // Generate device fingerprint and create session
+    const deviceFingerprint = AuthService.generateFingerprint(req);
+    const sessionId = await AuthService.createSession(newUser.id, deviceFingerprint, ipAddress);
 
-    SecurityLogger.logDataAccess('user_created', {
+    // Generate JWT token
+    const token = AuthService.generateToken({
       userId: newUser.id,
       username: newUser.username,
-      ip: req.ip,
+      role: newUser.role,
+      sessionId
     });
 
+    // Log successful registration
+    await securityLogger.logAuth('register', newUser.id, ipAddress, true);
+
     res.status(201).json({
-      success: true,
-      message: 'Utente registrato con successo',
-      user: {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-        roles: newUser.roles,
-      },
+      user: newUser,
+      token,
+      sessionId
     });
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({
-        success: false,
-        error: 'Dati di input non validi',
-        details: error.errors,
-      });
-    } else {
-      SecurityLogger.logSecurityViolation('registration_error', {
-        error: error.message,
-        ip: req.ip,
-      });
-      
-      res.status(500).json({
-        success: false,
-        error: 'Errore interno del server',
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: error.errors 
       });
     }
+
+    await securityLogger.logEvent({
+      eventType: 'registration_error',
+      ipAddress: req.ip || 'unknown',
+      details: { error: error.message },
+      severity: 'medium'
+    });
+
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
-// Logout endpoint
-router.post('/logout', async (req: any, res) => {
+// Login user
+router.post('/login', async (req, res) => {
   try {
-    const securityContext = req.securityContext;
-    
-    if (securityContext) {
-      await authService.logout(securityContext.authentication.sessionId);
-      
-      SecurityLogger.logAuthentication('success', {
-        action: 'logout',
-        userId: securityContext.authentication.userId,
-        sessionId: securityContext.authentication.sessionId,
+    const validatedData = loginSchema.parse(req.body);
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+    // Check if account is locked
+    const isLocked = await AuthService.isAccountLocked(validatedData.username);
+    if (isLocked) {
+      await securityLogger.logEvent({
+        eventType: 'login_blocked_locked_account',
+        ipAddress,
+        details: { username: validatedData.username },
+        severity: 'high'
       });
+      return res.status(423).json({ error: 'Account temporarily locked due to failed attempts' });
     }
 
-    res.json({ success: true, message: 'Logout effettuato con successo' });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Errore durante il logout',
-    });
-  }
-});
-
-// Validate token endpoint
-router.get('/validate', async (req: any, res) => {
-  try {
-    const securityContext = req.securityContext;
-    
-    if (!securityContext) {
-      return res.status(401).json({
-        valid: false,
-        error: 'Token non valido o scaduto',
-      });
-    }
-
-    res.json({
-      valid: true,
-      user: {
-        id: securityContext.authentication.userId,
-        sessionId: securityContext.authentication.sessionId,
-        roles: securityContext.authentication.roles,
-        expiresAt: securityContext.authentication.expiresAt,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      valid: false,
-      error: 'Errore durante la validazione',
-    });
-  }
-});
-
-// User profile endpoint
-router.get('/profile', async (req: any, res) => {
-  try {
-    const securityContext = req.securityContext;
-    
-    if (!securityContext) {
-      return res.status(401).json({
-        error: 'Autenticazione richiesta',
-      });
-    }
-
-    const [user] = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        roles: users.roles,
-        lastLoginAt: users.lastLoginAt,
-        createdAt: users.createdAt,
-      })
+    // Find user
+    const [user] = await db.select()
       .from(users)
-      .where(eq(users.id, securityContext.authentication.userId));
+      .where(eq(users.username, validatedData.username))
+      .limit(1);
 
     if (!user) {
-      return res.status(404).json({
-        error: 'Utente non trovato',
+      await AuthService.recordFailedAttempt(validatedData.username, ipAddress);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verify password
+    const isValidPassword = await AuthService.verifyPassword(validatedData.password, user.passwordHash);
+    if (!isValidPassword) {
+      await AuthService.recordFailedAttempt(validatedData.username, ipAddress);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Reset failed attempts on successful login
+    await AuthService.resetFailedAttempts(user.id);
+
+    // Generate device fingerprint and create session
+    const deviceFingerprint = AuthService.generateFingerprint(req);
+    const sessionId = await AuthService.createSession(user.id, deviceFingerprint, ipAddress);
+
+    // Generate JWT token
+    const token = AuthService.generateToken({
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      sessionId
+    });
+
+    // Log successful login
+    await securityLogger.logAuth('login', user.id, ipAddress, true);
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      },
+      token,
+      sessionId
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: error.errors 
       });
     }
 
-    SecurityLogger.logDataAccess('profile_accessed', {
-      userId: user.id,
-      sessionId: securityContext.authentication.sessionId,
+    await securityLogger.logEvent({
+      eventType: 'login_error',
+      ipAddress: req.ip || 'unknown',
+      details: { error: error.message },
+      severity: 'medium'
     });
 
-    res.json({ user });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Errore durante il recupero del profilo',
-    });
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
-export { router as authRoutes };
+// Get current user profile
+router.get('/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const payload = AuthService.verifyToken(token);
+    if (!payload) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Validate session
+    const deviceFingerprint = AuthService.generateFingerprint(req);
+    const isValidSession = await AuthService.validateSession(payload.sessionId, deviceFingerprint);
+    if (!isValidSession) {
+      return res.status(401).json({ error: 'Invalid session' });
+    }
+
+    // Get user data
+    const [user] = await db.select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      role: users.role,
+      mfaEnabled: users.mfaEnabled,
+      createdAt: users.createdAt
+    })
+    .from(users)
+    .where(eq(users.id, payload.userId))
+    .limit(1);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+
+  } catch (error) {
+    await securityLogger.logEvent({
+      eventType: 'profile_access_error',
+      ipAddress: req.ip || 'unknown',
+      details: { error: error.message },
+      severity: 'low'
+    });
+
+    res.status(500).json({ error: 'Failed to get profile' });
+  }
+});
+
+// Logout user
+router.post('/logout', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const payload = AuthService.verifyToken(token);
+    if (payload) {
+      // Revoke session
+      await AuthService.revokeSession(payload.sessionId);
+      
+      // Log logout
+      await securityLogger.logAuth('logout', payload.userId, req.ip || 'unknown', true);
+    }
+
+    res.json({ message: 'Logged out successfully' });
+
+  } catch (error) {
+    await securityLogger.logEvent({
+      eventType: 'logout_error',
+      ipAddress: req.ip || 'unknown',
+      details: { error: error.message },
+      severity: 'low'
+    });
+
+    res.status(500).json({ error: 'Logout failed' });
+  }
+});
+
+// Clean expired sessions (internal endpoint)
+router.post('/cleanup-sessions', async (req, res) => {
+  try {
+    await AuthService.cleanExpiredSessions();
+    res.json({ message: 'Expired sessions cleaned' });
+  } catch (error) {
+    res.status(500).json({ error: 'Cleanup failed' });
+  }
+});
+
+export default router;

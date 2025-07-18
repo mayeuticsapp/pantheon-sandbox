@@ -1,234 +1,108 @@
-// Authentication & Authorization Middleware
-import type { Request, Response, NextFunction } from 'express';
-import { db } from '../db';
-import { workspaceMembers } from '../../shared/schema';
-import { eq, and } from 'drizzle-orm';
-import { SecurityLogger } from '../security/logger';
-import { RolePermissions } from '../../shared/security/types';
+import { Request, Response, NextFunction } from 'express';
+import { AuthService } from '../security/auth';
+import { securityLogger } from '../security/logger';
 
-// Extend Request type
+// Extend Express Request type to include user
 declare global {
   namespace Express {
     interface Request {
-      securityContext?: any;
+      user?: {
+        userId: number;
+        username: string;
+        role: string;
+        sessionId: string;
+      };
     }
   }
 }
 
-// Require authentication
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.securityContext) {
-    SecurityLogger.logAuthorization('denied', {
-      reason: 'no_authentication',
-      endpoint: req.path,
-      ip: req.ip,
-    });
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Extract token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No valid authorization token provided' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
     
-    return res.status(401).json({
-      error: 'Autenticazione richiesta',
-      code: 'AUTH_REQUIRED',
+    // Verify JWT token
+    const payload = AuthService.verifyToken(token);
+    if (!payload) {
+      await securityLogger.logEvent({
+        eventType: 'invalid_token_access',
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.headers['user-agent'],
+        details: { endpoint: req.path },
+        severity: 'medium'
+      });
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    // Verify session is still valid
+    const deviceFingerprint = AuthService.generateFingerprint(req);
+    const isValidSession = await AuthService.validateSession(payload.sessionId, deviceFingerprint);
+    
+    if (!isValidSession) {
+      await securityLogger.logEvent({
+        eventType: 'invalid_session_access',
+        userId: payload.userId,
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.headers['user-agent'],
+        details: { endpoint: req.path, sessionId: payload.sessionId },
+        severity: 'medium'
+      });
+      return res.status(401).json({ error: 'Invalid session' });
+    }
+
+    // Attach user info to request
+    req.user = {
+      userId: payload.userId,
+      username: payload.username,
+      role: payload.role,
+      sessionId: payload.sessionId
+    };
+
+    next();
+
+  } catch (error) {
+    await securityLogger.logEvent({
+      eventType: 'auth_middleware_error',
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.headers['user-agent'],
+      details: { endpoint: req.path, error: error.message },
+      severity: 'high'
     });
+
+    res.status(500).json({ error: 'Authentication error' });
   }
-  
-  next();
-}
+};
 
-// Require specific role
-export function requireRole(requiredRole: string) {
+// Role-based authorization middleware
+export const requireRole = (requiredRole: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.securityContext) {
-      return res.status(401).json({
-        error: 'Autenticazione richiesta',
-        code: 'AUTH_REQUIRED',
-      });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const userRoles = req.securityContext.authentication.roles || [];
-    
-    if (!userRoles.includes(requiredRole)) {
-      SecurityLogger.logAuthorization('denied', {
-        reason: 'insufficient_role',
-        requiredRole,
-        userRoles,
-        userId: req.securityContext.authentication.userId,
-        endpoint: req.path,
+    if (req.user.role !== requiredRole && req.user.role !== 'admin') {
+      securityLogger.logEvent({
+        eventType: 'insufficient_permissions',
+        userId: req.user.userId,
+        ipAddress: req.ip || 'unknown',
+        details: { 
+          requiredRole, 
+          userRole: req.user.role, 
+          endpoint: req.path 
+        },
+        severity: 'medium'
       });
-      
-      return res.status(403).json({
-        error: 'Ruolo insufficiente',
-        code: 'INSUFFICIENT_ROLE',
-        required: requiredRole,
-      });
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
     next();
   };
-}
-
-// Require specific permission
-export function requirePermission(permission: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.securityContext) {
-      return res.status(401).json({
-        error: 'Autenticazione richiesta',
-        code: 'AUTH_REQUIRED',
-      });
-    }
-
-    const userRoles = req.securityContext.authentication.roles || [];
-    const userPermissions = getUserPermissions(userRoles);
-    
-    if (!userPermissions.includes(permission)) {
-      SecurityLogger.logAuthorization('denied', {
-        reason: 'insufficient_permission',
-        requiredPermission: permission,
-        userPermissions,
-        userId: req.securityContext.authentication.userId,
-        endpoint: req.path,
-      });
-      
-      return res.status(403).json({
-        error: 'Permesso insufficiente',
-        code: 'INSUFFICIENT_PERMISSION',
-        required: permission,
-      });
-    }
-
-    next();
-  };
-}
-
-// Require workspace access with specific permission
-export function requireWorkspaceAccess(permission: string) {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      if (!req.securityContext) {
-        return res.status(401).json({
-          error: 'Autenticazione richiesta',
-          code: 'AUTH_REQUIRED',
-        });
-      }
-
-      const workspaceId = req.params.workspaceId;
-      const userId = req.securityContext.authentication.userId;
-
-      if (!workspaceId) {
-        return res.status(400).json({
-          error: 'Workspace ID richiesto',
-          code: 'WORKSPACE_ID_REQUIRED',
-        });
-      }
-
-      // Check workspace membership
-      const [membership] = await db
-        .select()
-        .from(workspaceMembers)
-        .where(and(
-          eq(workspaceMembers.workspaceId, workspaceId),
-          eq(workspaceMembers.userId, userId),
-          eq(workspaceMembers.isActive, true)
-        ));
-
-      if (!membership) {
-        SecurityLogger.logAuthorization('denied', {
-          reason: 'no_workspace_access',
-          workspaceId,
-          userId,
-          requiredPermission: permission,
-        });
-        
-        return res.status(403).json({
-          error: 'Accesso al workspace negato',
-          code: 'WORKSPACE_ACCESS_DENIED',
-        });
-      }
-
-      // Check role permissions
-      const rolePermissions = getRolePermissions(membership.role);
-      const memberPermissions = [...rolePermissions, ...(membership.permissions || [])];
-      
-      if (!memberPermissions.includes(permission)) {
-        SecurityLogger.logAuthorization('denied', {
-          reason: 'insufficient_workspace_permission',
-          workspaceId,
-          userId,
-          memberRole: membership.role,
-          requiredPermission: permission,
-          memberPermissions,
-        });
-        
-        return res.status(403).json({
-          error: 'Permesso workspace insufficiente',
-          code: 'INSUFFICIENT_WORKSPACE_PERMISSION',
-          required: permission,
-          role: membership.role,
-        });
-      }
-
-      // Add workspace context to request
-      req.securityContext.workspaceMembership = membership;
-      req.securityContext.workspacePermissions = memberPermissions;
-
-      SecurityLogger.logAuthorization('granted', {
-        workspaceId,
-        userId,
-        permission,
-        role: membership.role,
-      });
-
-      next();
-    } catch (error) {
-      SecurityLogger.logSecurityViolation('workspace_auth_error', {
-        error: error.message,
-        workspaceId: req.params.workspaceId,
-        userId: req.securityContext?.authentication?.userId,
-      });
-      
-      res.status(500).json({
-        error: 'Errore durante la verifica dei permessi workspace',
-        code: 'WORKSPACE_AUTH_ERROR',
-      });
-    }
-  };
-}
-
-// Helper functions
-function getUserPermissions(roles: string[]): string[] {
-  const permissions = new Set<string>();
-  
-  roles.forEach(role => {
-    const rolePerms = RolePermissions[role as keyof typeof RolePermissions];
-    if (rolePerms) {
-      rolePerms.forEach(perm => permissions.add(perm));
-    }
-  });
-  
-  return Array.from(permissions);
-}
-
-function getRolePermissions(role: string): string[] {
-  const rolePerms = RolePermissions[role as keyof typeof RolePermissions];
-  return rolePerms || [];
-}
+};
 
 // Admin only middleware
 export const requireAdmin = requireRole('admin');
-
-// AI operator middleware (for AI API calls)
-export const requireAIOperator = requirePermission('ai:respond');
-
-// Data access logging middleware
-export function logDataAccess(operation: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    SecurityLogger.logDataAccess(operation, {
-      userId: req.securityContext?.authentication?.userId,
-      sessionId: req.securityContext?.authentication?.sessionId,
-      workspaceId: req.params.workspaceId,
-      endpoint: req.path,
-      method: req.method,
-      ip: req.ip,
-    });
-    
-    next();
-  };
-}
