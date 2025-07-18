@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth';
 import workspaceRoutes from './routes/workspaces';
 import aiRoutes from './routes/ai';
+import builderRoutes from './routes/builder';
 
 // Import middleware and security
 import { securityLogger } from './security/logger';
@@ -106,6 +107,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/builder', builderRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
