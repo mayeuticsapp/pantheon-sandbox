@@ -61,6 +61,19 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     enabled: !!conversationId,
   });
 
+  // Get project files for current conversation
+  const { data: projectFiles = [] } = useQuery({
+    queryKey: ["/api/conversations", conversationId, "files"],
+    queryFn: async () => {
+      if (!conversationId) return [];
+      const response = await fetch(`/api/conversations/${conversationId}/files`);
+      if (!response.ok) throw new Error("Failed to fetch project files");
+      const data = await response.json();
+      return data.files || [];
+    },
+    enabled: !!conversationId,
+  });
+
   // Send user message mutation
   const sendMessageMutation = useMutation({
     mutationFn: (content: string) => 
@@ -713,6 +726,59 @@ REGOLE FONDAMENTALI:
               <p className="text-xs text-blue-600 mt-2">
                 ℹ️ Questi file sono disponibili per tutte le AI della conversazione
               </p>
+            </div>
+          )}
+
+          {/* Project Files display */}
+          {projectFiles.length > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-blue-800 flex items-center">
+                  🚀 <span className="ml-2">Progetto AI Collaborativo</span>
+                </h4>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const downloadUrl = `/api/conversations/${conversationId}/download`;
+                    window.open(downloadUrl, '_blank');
+                  }}
+                  className="text-xs"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Scarica ZIP
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {projectFiles.map((file: any) => (
+                  <div key={file.id} className="bg-white border border-blue-200 rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-800 truncate">{file.filename}</span>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        {file.language}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2">{file.purpose}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-purple-600 font-medium">
+                        by {file.generatedBy}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-3 pt-3 border-t border-blue-100">
+                <p className="text-xs text-blue-600">
+                  🤖 <strong>AI Team</strong>: {[...new Set(projectFiles.map((f: any) => f.generatedBy))].join(', ')} • 
+                  <strong> {projectFiles.length} file generati</strong> • 
+                  Codice reale funzionante
+                </p>
+              </div>
             </div>
           )}
 
