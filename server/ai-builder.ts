@@ -81,24 +81,42 @@ export class AICollaborativeBuilder {
       
       // STEP 1: Geppo creates project architecture
       console.log("📐 Geppo: Planning project architecture...");
-      const architecturePrompt = `You are Geppo, an expert software architect. Create a project structure for: "${request.projectName}"
+      const architecturePrompt = `You are GEPPO, a SENIOR SOFTWARE ARCHITECT with 15+ years building enterprise applications.
 
-Description: ${request.description}
+PROJECT: ${request.projectName}
+DESCRIPTION: ${request.description}
+REQUIREMENTS: ${request.requirements.map(req => `• ${req}`).join('\n')}
 
-Requirements:
-${request.requirements.map(req => `- ${req}`).join('\n')}
+ARCHITECT A PROFESSIONAL, COMPREHENSIVE WEB APPLICATION:
 
-Respond with a JSON object containing the project structure:
+ARCHITECTURAL CONSIDERATIONS:
+• Enterprise-grade structure and scalability
+• Modern web development patterns (2024)
+• Performance optimization from ground up
+• Rich user experience with multiple sections
+• SEO and accessibility compliance
+• Mobile-first responsive design
+
+CREATE SOPHISTICATED FILE STRUCTURE (4-6 files minimum):
+• Multiple HTML pages for comprehensive site
+• Modular CSS architecture
+• Advanced JavaScript functionality
+• Documentation and assets
+
+EXAMPLE COMPREHENSIVE STRUCTURE:
 {
   "projectStructure": [
-    {"filename": "index.html", "language": "html", "purpose": "main homepage"},
-    {"filename": "style.css", "language": "css", "purpose": "main stylesheet"},
-    {"filename": "script.js", "language": "javascript", "purpose": "main interactions"}
+    {"filename": "index.html", "language": "html", "purpose": "main homepage with hero, features, testimonials"},
+    {"filename": "about.html", "language": "html", "purpose": "company information and team details"},
+    {"filename": "main.css", "language": "css", "purpose": "core styling, layout, responsive design"},
+    {"filename": "components.css", "language": "css", "purpose": "component-specific styles and animations"},
+    {"filename": "app.js", "language": "javascript", "purpose": "main application logic and interactions"},
+    {"filename": "README.md", "language": "markdown", "purpose": "project documentation and setup"}
   ],
-  "architectureNotes": "Brief explanation of the structure decisions"
+  "architectureNotes": "Multi-page professional website with modular architecture and enterprise-grade functionality"
 }
 
-Only respond with valid JSON, no other text.`;
+RESPOND WITH VALID JSON ONLY. NO explanations, NO markdown blocks.`;
 
       const architectureResponse = await this.generateWithAI("geppo", architecturePrompt);
       
@@ -257,44 +275,130 @@ Keep it concise and professional.`;
   }
 
   private createFilePrompt(aiId: string, fileSpec: any, request: BuildRequest): string {
-    const baseContext = `Project: ${request.projectName}
-Description: ${request.description}
-File: ${fileSpec.filename} (${fileSpec.language})
-Purpose: ${fileSpec.purpose}
+    const baseContext = `PROJECT: ${request.projectName}
+DESCRIPTION: ${request.description}
+FILE: ${fileSpec.filename} (${fileSpec.language})
+PURPOSE: ${fileSpec.purpose}
 
-Requirements:
-${request.requirements.map(req => `- ${req}`).join('\n')}`;
+BUSINESS REQUIREMENTS:
+${request.requirements.map(req => `• ${req}`).join('\n')}`;
 
     switch (aiId) {
       case 'geppo':
         return `${baseContext}
 
-You are Geppo, expert in software architecture and HTML structure. Create clean, semantic, well-structured ${fileSpec.language} code.
-Focus on: proper structure, accessibility, SEO optimization, clean markup.
+You are GEPPO, a SENIOR FULL-STACK ARCHITECT with 15+ years experience building enterprise applications.
 
-Generate the complete file content. Only return the code, no explanations.`;
+EXPERTISE: Advanced HTML5, semantic structure, accessibility (WCAG 2.1), SEO optimization, performance.
+
+CREATE PRODUCTION-GRADE HTML:
+• Modern HTML5 semantic structure (header, nav, main, section, article, aside, footer)
+• Advanced meta tags, Open Graph, Twitter Cards, structured data
+• Perfect accessibility: ARIA labels, roles, keyboard navigation, screen reader optimization
+• SEO-optimized: proper headings hierarchy, alt texts, meta descriptions
+• Performance optimized: lazy loading, critical CSS hints, preload directives
+• Professional content - NO placeholder text, use realistic business content
+• Include contact forms, navigation, call-to-action sections
+• Mobile-first responsive structure with proper viewport meta
+• Schema.org microdata for business information
+
+QUALITY STANDARDS:
+• Enterprise-level code quality
+• HTML5 validation compliant
+• Lighthouse score 95+
+• Real, engaging business content
+• Professional layout structure
+
+Return ONLY the complete HTML code. NO explanations, NO markdown blocks.`;
 
       case 'claude3':
         return `${baseContext}
 
-You are Claude3, expert in UI/UX design and CSS styling. Create beautiful, modern, responsive design.
-Focus on: aesthetic appeal, user experience, mobile-first design, accessibility.
+You are CLAUDE3, an EXPERT UI/UX DESIGNER and CSS ARCHITECT specializing in modern web design.
 
-Generate the complete file content. Only return the code, no explanations.`;
+EXPERTISE: Advanced CSS3, Flexbox, Grid, animations, responsive design, design systems.
+
+CREATE STUNNING PROFESSIONAL CSS:
+• Modern CSS Grid and Flexbox layouts
+• Beautiful color palettes with CSS custom properties
+• Sophisticated typography using web fonts (Google Fonts)
+• Smooth animations and micro-interactions
+• Advanced responsive design (mobile-first, multiple breakpoints)
+• Professional shadows, gradients, hover effects
+• Modern button styles, form styling, card components
+• Dark/light theme support with CSS variables
+• Advanced selectors and pseudo-elements
+• Performance optimized: efficient selectors, critical CSS
+• Beautiful hero sections, testimonials, product showcases
+• Professional navigation with dropdowns and mobile menu
+• Modern loading states and transitions
+
+DESIGN STANDARDS:
+• Contemporary design trends (2024)
+• Consistent spacing system (8px grid)
+• Professional color harmony
+• Accessible contrast ratios (WCAG AA)
+• Engaging visual hierarchy
+• Enterprise-quality aesthetics
+
+Return ONLY the complete CSS code. NO explanations, NO markdown blocks.`;
 
       case 'mistral':
         return `${baseContext}
 
-You are Mistral, expert in JavaScript and business logic. Create efficient, clean, functional code.
-Focus on: performance, functionality, user interactions, business requirements.
+You are MISTRAL, a SENIOR JAVASCRIPT ENGINEER specializing in modern web applications and user experience.
 
-Generate the complete file content. Only return the code, no explanations.`;
+EXPERTISE: ES6+, DOM manipulation, async/await, performance optimization, UX patterns.
+
+CREATE ADVANCED JAVASCRIPT:
+• Modern ES6+ syntax with clean, maintainable code
+• Advanced DOM manipulation and event handling
+• Smooth animations using requestAnimationFrame
+• Form validation with real-time feedback
+• Interactive UI components (modals, dropdowns, tabs, sliders)
+• Lazy loading and intersection observer for performance
+• Local storage for user preferences
+• Responsive navigation with mobile hamburger menu
+• Product/service filtering and search functionality
+• Contact form with validation and submission handling
+• Scroll animations and progressive loading
+• Error handling and user feedback systems
+• Performance monitoring and optimization
+• Modern async patterns for API calls
+
+FUNCTIONALITY REQUIREMENTS:
+• Fully interactive user interface
+• Professional form handling with validation
+• Smooth page transitions and animations
+• Mobile-optimized touch interactions
+• Accessibility keyboard navigation
+• Error handling with user-friendly messages
+• Loading states and progress indicators
+
+QUALITY STANDARDS:
+• Production-ready, bug-free code
+• Optimized performance (60fps animations)
+• Cross-browser compatibility
+• Mobile-first responsive behavior
+• Comprehensive error handling
+
+Return ONLY the complete JavaScript code. NO explanations, NO markdown blocks.`;
 
       default:
         return `${baseContext}
 
-Generate the complete ${fileSpec.language} file content for ${fileSpec.filename}.
-Only return the code, no explanations.`;
+You are a SENIOR SOFTWARE ENGINEER. Create PRODUCTION-QUALITY ${fileSpec.language} code.
+
+REQUIREMENTS:
+• Enterprise-grade code quality
+• Modern best practices and patterns
+• Full functionality implementation
+• Professional documentation
+• Performance optimized
+• Security considerations
+• Error handling
+
+Return ONLY the complete code. NO explanations.`;
     }
   }
 }
