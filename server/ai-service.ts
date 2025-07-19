@@ -134,6 +134,9 @@ async function generateOpenAIResponse(
       systemPrompt += memoryContext;
     }
     
+    // Aggiungi istruzioni anti-confusione identitaria
+    systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.`;
+    
     // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
     if (instructions) {
       systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
@@ -221,6 +224,9 @@ async function generateAnthropicResponse(
     systemPrompt += memoryContext;
   }
   
+  // Aggiungi istruzioni anti-confusione identitaria per Anthropic
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.`;
+  
   // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
@@ -297,6 +303,9 @@ async function generateMistralResponse(
   if (memoryContext) {
     systemPrompt += memoryContext;
   }
+  
+  // Aggiungi istruzioni anti-confusione identitaria per Mistral
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.`;
   
   // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
@@ -382,6 +391,9 @@ async function generatePerplexityResponse(
   if (memoryContext) {
     systemPrompt += memoryContext;
   }
+  
+  // Aggiungi istruzioni anti-confusione identitaria per Perplexity
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.`;
   
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE ===\n${instructions}`;

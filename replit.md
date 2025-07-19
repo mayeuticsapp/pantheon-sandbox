@@ -35,6 +35,7 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 - ✅ **INTEGRAZIONE AI-SERVICE** - Tutte le AI (OpenAI, Anthropic, Mistral, Perplexity) accedono alla memoria condivisa
 - ✅ **SISTEMA AUTOMATICO** - Ogni risposta AI viene automaticamente processata e salvata come ricordo semantico
 - ✅ **RICORDI CONTESTUALI** - Le AI ricevono ricordi rilevanti automaticamente basati sul contenuto del messaggio
+- ✅ **CORREZIONE IDENTITÀ CONFUSE** - Risolto problema AI che parlavano a nome di altre AI con etichette sbagliate
 
 ### TRASFORMAZIONE ARCHETIPI UNIVERSALI ✅🌟  
 - ✅ **TERRA** - Stabilità e concretezza (sostituisce ruoli tecnici specifici)
