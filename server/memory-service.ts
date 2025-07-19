@@ -191,7 +191,9 @@ export class MemoryService {
     lastUpdated: string;
   }> {
     try {
-      const memories = await this.db.select().from(semanticMemory);
+      console.log("🔍 MemoryService: Starting getMemoryStats...");
+      const memories = await db.select().from(semanticMemory);
+      console.log(`📊 MemoryService: Found ${memories.length} memories in database`);
       const totalSize = memories.reduce((sum, m) => sum + m.content.length, 0);
       
       // Group by personality
@@ -207,7 +209,8 @@ export class MemoryService {
         lastUpdated: new Date().toISOString()
       };
     } catch (error) {
-      console.error("Errore nel calcolare statistiche memoria:", error);
+      console.error("❌ ERRORE MemoryService statistiche memoria:", error);
+      console.error("❌ Stack trace:", error.stack);
       return {
         totalMemories: 0,
         memoriesByPersonality: {},
