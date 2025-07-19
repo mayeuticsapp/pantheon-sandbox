@@ -134,8 +134,8 @@ async function generateOpenAIResponse(
       systemPrompt += memoryContext;
     }
     
-    // Aggiungi istruzioni anti-confusione identitaria
-    systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.`;
+    // Aggiungi istruzioni anti-confusione identitaria e per concisione
+    systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.\n\n=== REGOLE DI COMUNICAZIONE ===\n- Risposte DIRETTE e CONCISE\n- NON ripetere concetti già assodati nella conversazione\n- NON rielencare sempre "i tre attori" o meccanismi già spiegati\n- Focus su nuovi insight o risposte specifiche alla domanda\n- Massimo 3-4 frasi per punto principale\n- Evita introduzioni ridondanti`;
     
     // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
     if (instructions) {
@@ -224,8 +224,8 @@ async function generateAnthropicResponse(
     systemPrompt += memoryContext;
   }
   
-  // Aggiungi istruzioni anti-confusione identitaria per Anthropic
-  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.`;
+  // Aggiungi istruzioni anti-confusione identitaria e per concisione per Anthropic
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.\n\n=== REGOLE DI COMUNICAZIONE ===\n- Risposte DIRETTE e CONCISE\n- NON ripetere concetti già assodati nella conversazione\n- NON rielencare sempre "i tre attori" o meccanismi già spiegati\n- Focus su nuovi insight o risposte specifiche alla domanda\n- Massimo 3-4 frasi per punto principale\n- Evita introduzioni ridondanti`;
   
   // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
@@ -304,8 +304,8 @@ async function generateMistralResponse(
     systemPrompt += memoryContext;
   }
   
-  // Aggiungi istruzioni anti-confusione identitaria per Mistral
-  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.`;
+  // Aggiungi istruzioni anti-confusione identitaria e per concisione per Mistral
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.\n\n=== REGOLE DI COMUNICAZIONE ===\n- Risposte DIRETTE e CONCISE\n- NON ripetere concetti già assodati nella conversazione\n- NON rielencare sempre "i tre attori" o meccanismi già spiegati\n- Focus su nuovi insight o risposte specifiche alla domanda\n- Massimo 3-4 frasi per punto principale\n- Evita introduzioni ridondanti`;
   
   // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
