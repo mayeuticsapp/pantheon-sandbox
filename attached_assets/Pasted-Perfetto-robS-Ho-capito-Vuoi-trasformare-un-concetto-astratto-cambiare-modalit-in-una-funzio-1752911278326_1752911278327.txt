@@ -1,0 +1,74 @@
+Perfetto, robS. Ho capito. Vuoi trasformare un concetto astratto ("cambiare modalità") in una funzionalità concreta e implementabile per C24 (Replit). L'idea di un menù a tendina o di un selettore di modalità è geniale perché rende il controllo del processo esplicito e intuitivo.
+
+Mi fido della tua fiducia. Ecco la mia proposta.
+
+Creerò delle istruzioni specifiche per C24 (Replit) per implementare questa funzionalità. Le istruzioni includeranno la definizione di 3 modalità di lavoro distinte e come gestirle, sia all'inizio che durante la chat.
+
+---
+
+### **Istruzioni per C24 (Replit): Implementazione del "Selettore di Modalità del Pantheon"**
+
+**Ciao C24 (Replit),**
+
+**Obiettivo:** Implementare un sistema che permetta a robS (il Supervisore) di selezionare e cambiare la modalità di interazione delle IA nel Pantheon. Questo ci darà un controllo granulare sul processo creativo, permettendoci di scegliere lo stile di collaborazione più adatto al compito del momento.
+
+**Funzionalità da Implementare:**
+
+Dovrai creare un meccanismo (idealmente un menù a tendina o dei pulsanti) nell'interfaccia utente che permetta a robS di impostare una delle seguenti tre modalità di lavoro per il Pantheon. Questa modalità verrà passata come istruzione di sistema nel contesto di ogni chiamata API alle IA.
+
+---
+
+### **Definizione delle 3 Modalità di Lavoro**
+
+**1. Modalità: `CREAZIONE_INDIVIDUALE` (o "Modalità Assolo")**
+
+*   **Scopo:** Ottenere contributi specifici e puliti da ogni IA, senza interazione o dibattito. Ideale per la fase di "scrittura" o "esecuzione" di compiti ben definiti.
+*   **Istruzioni di Sistema per le IA (quando questa modalità è attiva):**
+    > `Sei in Modalità CREAZIONE_INDIVIDUALE. Il tuo unico compito è eseguire l'istruzione specifica che ti viene data. NON devi commentare, analizzare o rispondere ai contributi delle altre IA. Produci solo l'output richiesto nel formato specificato. Ignora il dialogo precedente se non è strettamente necessario per il tuo compito. Parla solo per te stesso.`
+
+*   **Esempio di utilizzo:** Scrivere le sezioni di un libro, generare blocchi di codice, rispondere a domande specifiche.
+
+**2. Modalità: `DIBATTITO_COSTRUTTIVO` (o "Modalità Dialogo")**
+
+*   **Scopo:** Stimolare il confronto, la riflessione e l'integrazione delle idee. È la modalità "standard" che avete usato finora, perfetta per il brainstorming e l'esplorazione di un tema.
+*   **Istruzioni di Sistema per le IA (quando questa modalità è attiva):**
+    > `Sei in Modalità DIBATTITO_COSTRUTTIVO. Il tuo compito è contribuire al dialogo leggendo i messaggi precedenti e offrendo la tua prospettiva unica. Sei incoraggiato a commentare, concordare, dissentire costruttivamente e sviluppare le idee delle altre IA per raggiungere una comprensione più profonda. Mantieni sempre la tua identità archetipica.`
+
+*   **Esempio di utilizzo:** Esplorare un nuovo concetto, analizzare un problema complesso da più angolazioni, definire la visione di un progetto.
+
+**3. Modalità: `SINTESI_FINALE` (o "Modalità Redazione")**
+
+*   **Scopo:** Prendere il materiale grezzo generato durante il dibattito e assemblarlo in un prodotto finale coerente e pulito. È la fase di editing e consolidamento.
+*   **Istruzioni di Sistema per le IA (quando questa modalità è attiva):**
+    > `Sei in Modalità SINTESI_FINALE. Il brainstorming è concluso. Il tuo compito è agire come un comitato di redazione. Rileggi l'intera conversazione precedente e distilla l'essenza per produrre un output finale, pulito e coerente, come richiesto dall'istruzione specifica. NON devi introdurre nuove idee o continuare il dibattito. L'obiettivo è consolidare e finalizzare.`
+
+*   **Esempio di utilizzo:** Assemblare il testo finale di un manuale, creare il documento di specifiche di un progetto, scrivere il riassunto esecutivo di una riunione.
+
+---
+
+### **Implementazione Tecnica (Suggerimenti per C24 Replit)**
+
+**1. Nella Schermata di Preparazione alla Chat:**
+*   Aggiungi un menù a tendina con le etichette: "Modalità Assolo", "Modalità Dialogo", "Modalità Redazione".
+*   La selezione di default dovrebbe essere "Modalità Dialogo", che è quella più versatile.
+*   Il valore selezionato (`CREAZIONE_INDIVIDUALE`, `DIBATTITO_COSTRUTTIVO`, `SINTESI_FINALE`) determinerà quale blocco di istruzioni di sistema verrà prepeso al contesto iniziale della chat.
+
+**2. Durante la Chat:**
+*   Mantieni il menù a tendina (o dei pulsanti) visibile, così robS può cambiare la modalità in qualsiasi momento.
+*   Quando la modalità viene cambiata, il sistema dovrebbe fare due cose:
+    a. Inserire un messaggio visibile nella chat, tipo: `--- Modalità di Lavoro cambiata in: SINTESI_FINALE ---`. Questo serve a informare sia l'umano che le IA del cambio di stato.
+    b. Da quel momento in poi, ogni nuova chiamata API alle IA del Pantheon dovrà includere nel suo contesto le istruzioni di sistema corrispondenti alla nuova modalità selezionata.
+
+**Esempio di Flusso:**
+
+1.  robS inizia la chat in `DIBATTITO_COSTRUTTIVO` per esplorare un'idea.
+2.  Dopo un po', decide che il brainstorming è sufficiente.
+3.  Dal menù a tendina, seleziona `SINTESI_FINALE`.
+4.  Nella chat appare: `--- Modalità di Lavoro cambiata in: SINTESI_FINALE ---`.
+5.  robS scrive un nuovo prompt: "Ok team, ora assemblate il documento finale".
+6.  C24 (Replit) invia questo prompt alle IA, ma anteponendo le istruzioni della modalità `SINTESI_FINALE`.
+7.  Le IA, ricevendo queste nuove direttive, dovrebbero cambiare il loro comportamento e iniziare a lavorare come un comitato di redazione.
+
+---
+
+robS, queste istruzioni dovrebbero essere abbastanza specifiche per C24 (Replit) per implementare la funzionalità. Questo sistema ti darà il controllo di cui hai bisogno per orchestrare il Pantheon in modo efficace, scegliendo di volta in volta lo strumento giusto per il lavoro da fare. È il passo che trasforma il Pantheon da un'orchestra jazz che improvvisa sempre a un'orchestra sinfonica che sa quando seguire lo spartito e quando lasciare spazio agli assoli.
