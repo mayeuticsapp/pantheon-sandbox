@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Play, Pause, Square, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings, Paperclip, Users } from "lucide-react";
+import { Send, Play, Pause, Square, MoreVertical, Bot, User, Plus, Trash2, Edit3, Download, Settings, Paperclip, Users, Copy, CheckSquare, Square as SelectSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +33,8 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [totalCycles, setTotalCycles] = useState(0);
   const [isMultiCycleActive, setIsMultiCycleActive] = useState(false);
   const [workMode, setWorkMode] = useState<WorkMode>('DIALOGO');
+  const [selectedMessages, setSelectedMessages] = useState<Set<number>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -527,6 +529,76 @@ REGOLE FONDAMENTALI:
     });
   };
 
+  // Funzioni per la selezione e copia dei messaggi
+  const toggleMessageSelection = (messageId: number) => {
+    const newSelection = new Set(selectedMessages);
+    if (newSelection.has(messageId)) {
+      newSelection.delete(messageId);
+    } else {
+      newSelection.add(messageId);
+    }
+    setSelectedMessages(newSelection);
+  };
+
+  const selectLastMessages = (count: number) => {
+    const lastMessages = messages.slice(-count).map(m => m.id);
+    setSelectedMessages(new Set(lastMessages));
+  };
+
+  const copySelectedMessages = () => {
+    if (selectedMessages.size === 0) {
+      toast({
+        title: "Nessun messaggio selezionato",
+        description: "Seleziona prima i messaggi da copiare",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedIds = Array.from(selectedMessages);
+    const messagesToCopy = messages
+      .filter(m => selectedIds.includes(m.id))
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    let copyText = "";
+    if (conversation) {
+      copyText += `=== ${conversation.title} ===\n\n`;
+    }
+
+    messagesToCopy.forEach((message, index) => {
+      const sender = message.senderId === "user" 
+        ? "robS" 
+        : getPersonalityName(message.senderId);
+      const time = formatTime(new Date(message.createdAt));
+      
+      copyText += `[${time}] ${sender}:\n${message.content}\n\n`;
+    });
+
+    copyText += `--- Copiato ${selectedMessages.size} messaggi ---`;
+
+    navigator.clipboard.writeText(copyText).then(() => {
+      toast({
+        title: "Messaggi copiati!",
+        description: `${selectedMessages.size} messaggi copiati negli appunti`,
+      });
+      setSelectedMessages(new Set());
+      setIsSelectionMode(false);
+    }).catch(() => {
+      toast({
+        title: "Errore nella copia",
+        description: "Non è stato possibile copiare i messaggi",
+        variant: "destructive",
+      });
+    });
+  };
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    if (isSelectionMode) {
+      setSelectedMessages(new Set());
+    }
+  };
+
   if (!conversationId) {
     return (
       <Card className="h-[calc(100vh-140px)] sm:h-[calc(100vh-180px)]">
@@ -686,6 +758,33 @@ REGOLE FONDAMENTALI:
                     <Paperclip className="h-4 w-4 mr-2" />
                     Carica File
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={toggleSelectionMode}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    {isSelectionMode ? 'Annulla selezione' : 'Seleziona messaggi'}
+                  </DropdownMenuItem>
+                  {isSelectionMode && (
+                    <>
+                      <DropdownMenuItem onClick={() => selectLastMessages(3)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Ultimi 3 messaggi
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => selectLastMessages(5)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Ultimi 5 messaggi
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => selectLastMessages(10)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Ultimi 10 messaggi
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={copySelectedMessages}
+                        disabled={selectedMessages.size === 0}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copia selezionati ({selectedMessages.size})
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem onClick={() => {
                     const conversationText = `${conversation?.title}\n\n${messages.map(m => 
                       `${m.senderId === 'user' ? 'Tu' : getPersonalityName(m.senderId!)}: ${m.content}`
@@ -694,7 +793,7 @@ REGOLE FONDAMENTALI:
                     toast({ title: "Conversazione copiata!", description: "Il testo è stato copiato negli appunti" });
                   }}>
                     <Download className="h-4 w-4 mr-2" />
-                    Esporta conversazione
+                    Esporta conversazione completa
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     toast({ title: "Modifica", description: "Funzionalità in arrivo!" });
@@ -805,6 +904,31 @@ REGOLE FONDAMENTALI:
             </div>
           )}
 
+          {/* Indicatore modalità selezione */}
+          {isSelectionMode && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Copy className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">
+                    Modalità selezione attiva - {selectedMessages.size} messaggi selezionati
+                  </span>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={toggleSelectionMode}
+                  className="text-xs"
+                >
+                  Annulla
+                </Button>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                Clicca sui messaggi per selezionarli, poi usa il menu per copiarli
+              </p>
+            </div>
+          )}
+
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-6 sm:py-8 px-4">
               <p className="responsive-text-sm">Nessun messaggio in questa conversazione</p>
@@ -812,7 +936,28 @@ REGOLE FONDAMENTALI:
             </div>
           ) : (
             messages.map((message) => (
-              <div key={message.id} className="message-bubble">
+              <div 
+                key={message.id} 
+                className={`message-bubble relative ${
+                  isSelectionMode 
+                    ? 'cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors'
+                    : ''
+                } ${
+                  selectedMessages.has(message.id) 
+                    ? 'bg-blue-50 ring-2 ring-blue-300' 
+                    : ''
+                }`}
+                onClick={isSelectionMode ? () => toggleMessageSelection(message.id) : undefined}
+              >
+                {isSelectionMode && (
+                  <div className="absolute top-2 left-2 z-10">
+                    {selectedMessages.has(message.id) ? (
+                      <CheckSquare className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <SelectSquare className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
+                )}
                 {!message.senderId || message.senderId === "user" ? (
                   // User message
                   <div className="flex justify-end">
