@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import FileUpload from "./file-upload";
 import type { MessageWithSender, Personality, Attachment } from "@shared/schema";
 
+type WorkMode = 'FOCUS' | 'DIALOGO' | 'SINTESI';
+
 interface ChatAreaProps {
   conversationId: number | null;
   personalities: Personality[];
@@ -30,6 +32,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [currentCycle, setCurrentCycle] = useState(0);
   const [totalCycles, setTotalCycles] = useState(0);
   const [isMultiCycleActive, setIsMultiCycleActive] = useState(false);
+  const [workMode, setWorkMode] = useState<WorkMode>('DIALOGO');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -584,6 +587,27 @@ REGOLE FONDAMENTALI:
                   </p>
                 )}
               </div>
+            </div>
+            
+            {/* Selettore modalità operative */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-medium text-blue-700">Modalità:</span>
+                <select 
+                  value={workMode} 
+                  onChange={(e) => setWorkMode(e.target.value as WorkMode)}
+                  className="text-xs bg-white border border-blue-300 rounded px-2 py-1 text-blue-700"
+                >
+                  <option value="FOCUS">🎯 Focus Puro - Esecuzione diretta</option>
+                  <option value="DIALOGO">💬 Dialogo Costruttivo - Collaborazione</option>
+                  <option value="SINTESI">🔮 Sintesi Finale - Unifica tutto</option>
+                </select>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                {workMode === 'FOCUS' && "Le AI lavorano in sequenza, ognuna sulla propria specialità"}
+                {workMode === 'DIALOGO' && "Le AI dialogano e si confrontano per migliorare la soluzione"}
+                {workMode === 'SINTESI' && "Le AI convergono verso una soluzione unificata e ottimale"}
+              </p>
             </div>
             
             <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">

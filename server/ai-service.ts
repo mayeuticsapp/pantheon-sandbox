@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import Anthropic from '@anthropic-ai/sdk';
 import { storage } from "./storage";
+import { memoryService } from "./memory-service";
 import type { Personality, Message } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -35,10 +36,17 @@ export async function generateAIResponse(
       throw new Error(`Nessun provider attivo disponibile per ${personality.displayName}`);
     }
 
-    // Ottieni gli allegati della conversazione se disponibili
+    // Ottieni memoria collettiva e allegati della conversazione
+    let memoryContext = "";
     let attachmentsContext = "";
+    
     if (conversationId) {
       try {
+        // Genera contesto di memoria basato sul messaggio corrente
+        memoryContext = await memoryService.generateMemoryContext(personality.nameId, newMessage);
+        console.log(`🧠 Memoria caricata per ${personality.displayName}: ${memoryContext.length > 0 ? 'ricordi trovati' : 'nessun ricordo rilevante'}`);
+        
+        // Ottieni allegati
         const attachments = await storage.getAttachments(conversationId);
         if (attachments.length > 0) {
           attachmentsContext = "\n\n=== FILE CONDIVISI NELLA CONVERSAZIONE ===\n";
@@ -54,22 +62,35 @@ export async function generateAIResponse(
           attachmentsContext += "=== FINE FILE CONDIVISI ===\n";
         }
       } catch (error) {
-        console.log("⚠️ Impossibile caricare allegati:", error);
+        console.log("⚠️ Impossibile caricare memoria/allegati:", error);
       }
     }
 
     // Gestisci diversi tipi di provider
+    let response: string;
     if (targetProvider.type === "anthropic") {
-      return await generateAnthropicResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
+      response = await generateAnthropicResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else if (targetProvider.type === "openai") {
-      return await generateOpenAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
+      response = await generateOpenAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else if (targetProvider.type === "mistral") {
-      return await generateMistralResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
+      response = await generateMistralResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else if (targetProvider.type === "perplexity") {
-      return await generatePerplexityResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext);
+      response = await generatePerplexityResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else {
       throw new Error(`Tipo di provider non supportato: ${targetProvider.type}`);
     }
+
+    // Salva la risposta nella memoria collettiva
+    if (conversationId && response) {
+      try {
+        await memoryService.processAndSaveMessage(conversationId, personality.nameId, response);
+        console.log(`💾 Risposta salvata nella memoria collettiva per ${personality.displayName}`);
+      } catch (error) {
+        console.log("⚠️ Errore nel salvare la memoria:", error);
+      }
+    }
+
+    return response;
   } catch (error) {
     console.error(`❌ Errore generazione risposta per ${personality.displayName}:`, error);
     throw error;
@@ -96,7 +117,8 @@ async function generateOpenAIResponse(
   conversationHistory: Message[],
   newMessage: string,
   instructions?: string,
-  attachmentsContext?: string
+  attachmentsContext?: string,
+  memoryContext?: string
 ): Promise<string> {
   // Inizializza OpenAI con la chiave API dal provider
   const openai = new OpenAI({
@@ -106,6 +128,12 @@ async function generateOpenAIResponse(
 
     // Costruisci la cronologia della conversazione per il context
     let systemPrompt = personality.systemPrompt;
+    
+    // Aggiungi memoria collettiva
+    if (memoryContext) {
+      systemPrompt += memoryContext;
+    }
+    
     // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
     if (instructions) {
       systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
@@ -177,7 +205,8 @@ async function generateAnthropicResponse(
   conversationHistory: Message[],
   newMessage: string,
   instructions?: string,
-  attachmentsContext?: string
+  attachmentsContext?: string,
+  memoryContext?: string
 ): Promise<string> {
   // Inizializza Anthropic con la chiave API dal provider
   const anthropic = new Anthropic({
@@ -186,6 +215,12 @@ async function generateAnthropicResponse(
 
   // Costruisci la cronologia della conversazione per il context
   let systemPrompt = personality.systemPrompt;
+  
+  // Aggiungi memoria collettiva
+  if (memoryContext) {
+    systemPrompt += memoryContext;
+  }
+  
   // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
@@ -246,7 +281,8 @@ async function generateMistralResponse(
   conversationHistory: Message[],
   newMessage: string,
   instructions?: string,
-  attachmentsContext?: string
+  attachmentsContext?: string,
+  memoryContext?: string
 ): Promise<string> {
   // Mistral usa un'API compatibile con OpenAI
   const mistral = new OpenAI({
@@ -256,6 +292,12 @@ async function generateMistralResponse(
 
   // Costruisci la cronologia della conversazione per il context
   let systemPrompt = personality.systemPrompt;
+  
+  // Aggiungi memoria collettiva
+  if (memoryContext) {
+    systemPrompt += memoryContext;
+  }
+  
   // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
@@ -323,7 +365,8 @@ async function generatePerplexityResponse(
   conversationHistory: Message[],
   newMessage: string,
   instructions?: string,
-  attachmentsContext?: string
+  attachmentsContext?: string,
+  memoryContext?: string
 ): Promise<string> {
   console.log(`🔍 Generando risposta Perplexity per ${personality.displayName}...`);
   
@@ -334,6 +377,12 @@ async function generatePerplexityResponse(
 
   // Costruisci il prompt di sistema con context minimo
   let systemPrompt = personality.systemPrompt;
+  
+  // Aggiungi memoria collettiva
+  if (memoryContext) {
+    systemPrompt += memoryContext;
+  }
+  
   if (instructions) {
     systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE ===\n${instructions}`;
   }

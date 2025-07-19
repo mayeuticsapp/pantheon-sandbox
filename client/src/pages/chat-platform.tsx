@@ -6,6 +6,7 @@ import ConversationList from "@/components/conversation-list";
 import ChatArea from "@/components/chat-area";
 import PersonalityManager from "@/components/personality-manager";
 import ProviderManager from "@/components/provider-manager";
+import MemoryStats from "@/components/memory-stats";
 
 type Tab = "conversations" | "personalities" | "providers";
 
@@ -33,16 +34,19 @@ export default function ChatPlatform() {
     switch (activeTab) {
       case "conversations":
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-6">
             <div className="lg:col-span-1">
-              <ConversationList
-                conversations={conversations}
-                selectedId={selectedConversationId}
-                onSelect={setSelectedConversationId}
-                personalities={personalities}
-              />
+              <div className="space-y-4">
+                <ConversationList
+                  conversations={conversations}
+                  selectedId={selectedConversationId}
+                  onSelect={setSelectedConversationId}
+                  personalities={personalities}
+                />
+                <MemoryStats />
+              </div>
             </div>
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
               <ChatArea
                 conversationId={selectedConversationId}
                 personalities={personalities}
