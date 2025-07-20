@@ -29,17 +29,22 @@ export class MemoryService {
     return savedMemory;
   }
 
-  // Processa e salva automaticamente un messaggio nella memoria
+  // Processa e salva automaticamente un messaggio nella memoria (MODALITÀ VELOCE)
   async processAndSaveMessage(
     conversationId: number,
     personalityId: string,
     content: string,
     importance: number = 5
   ): Promise<SemanticMemory> {
+    // MODALITÀ VELOCE: Disabilita salvataggio per prestazioni
+    console.log('🚀 MemoryService: Modalità veloce - salvataggio disabilitato per performance');
+    return {} as SemanticMemory; // Ritorna oggetto vuoto
+    
+    /* CODICE ORIGINALE DISABILITATO PER PERFORMANCE
     // Se la memoria è in pausa, non salvare nulla
     if (this.isPaused) {
       console.log('⏸️  MemoryService: Salvataggio saltato - memoria in pausa');
-      return {} as SemanticMemory; // Ritorna un oggetto vuoto invece di salvare
+      return {} as SemanticMemory;
     }
     // Estrai parole chiave automaticamente
     const keywords = this.extractKeywords(content);
@@ -58,6 +63,7 @@ export class MemoryService {
     };
 
     return this.saveMemory(memory);
+    */
   }
 
   // Recupera ricordi rilevanti per una query (OTTIMIZZATO - NO unnest)
@@ -138,15 +144,20 @@ export class MemoryService {
       .limit(limit);
   }
 
-  // Genera un prompt di contesto con ricordi rilevanti
+  // Genera un prompt di contesto con ricordi rilevanti (MODALITÀ VELOCE)
   async generateMemoryContext(
     personalityId: string,
     currentQuery: string
   ): Promise<string> {
+    // MODALITÀ VELOCE: Disabilita memoria per prestazioni
+    console.log('🚀 MemoryService: Modalità veloce attiva - memoria disabilitata per performance');
+    return ''; // Ritorna sempre vuoto per evitare query lente
+    
+    /* CODICE ORIGINALE DISABILITATO PER PERFORMANCE
     // Se la memoria è in pausa, non fornire contesto
     if (this.isPaused) {
       console.log('⏸️  MemoryService: Contesto memoria saltato - memoria in pausa');
-      return ''; // Ritorna stringa vuota invece di ricordi
+      return '';
     }
     
     const relevantMemories = await this.getRelevantMemories(personalityId, currentQuery, 5);
@@ -174,6 +185,7 @@ export class MemoryService {
 
     context += "\nUsa questi ricordi per dare continuità e coerenza alle tue risposte.\n";
     return context;
+    */
   }
 
   // Estrai parole chiave da un testo
