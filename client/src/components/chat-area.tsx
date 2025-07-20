@@ -32,6 +32,7 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
   const [currentCycle, setCurrentCycle] = useState(0);
   const [totalCycles, setTotalCycles] = useState(0);
   const [isMultiCycleActive, setIsMultiCycleActive] = useState(false);
+  const [isInfiniteMode, setIsInfiniteMode] = useState(false);
   const [workMode, setWorkMode] = useState<WorkMode>('DIALOGO');
   const [selectedMessages, setSelectedMessages] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -347,6 +348,144 @@ REGOLE FONDAMENTALI:
     }
   };
 
+  // Gestisce il dialogo infinito con controllo manuale  
+  const handleInfiniteCycleDialogue = async () => {
+    if (!conversationId || !conversation?.participants || conversation.participants.length === 0) {
+      toast({
+        title: "Errore",
+        description: "Nessun partecipante disponibile per la conversazione",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsInfiniteMode(true);
+    setIsMultiCycleActive(true);
+    setTotalCycles(999); // Simbolico per infinito
+    setCurrentCycle(0);
+    setIsTyping(true);
+    
+    toast({
+      title: "🚀 Modalità Infinito Attivata",
+      description: "Le AI dialogheranno all'infinito. Clicca 'Stop' per fermare.",
+    });
+    
+    try {
+      // Ordina i partecipanti alfabeticamente (escludi ricercatore e andrea)
+      const sortedParticipants = [...conversation.participants]
+        .filter(p => p.nameId !== "ricercatore" && p.nameId !== "andrea")
+        .sort((a, b) => a.nameId.localeCompare(b.nameId));
+      
+      let cycleNumber = 1;
+      
+      // Loop infinito - continua finché non viene fermato manualmente
+      while (isInfiniteMode && isMultiCycleActive) {
+        setCurrentCycle(cycleNumber);
+        console.log(`🔄 Ciclo Infinito ${cycleNumber} del Pantheon`);
+        
+        // Fai rispondere ogni AI in sequenza per questo ciclo
+        for (const personality of sortedParticipants) {
+          // Controlla se il dialogo è ancora attivo prima di ogni risposta
+          if (!isInfiniteMode || !isMultiCycleActive) {
+            console.log("🛑 Dialogo infinito fermato manualmente");
+            return;
+          }
+          
+          console.log(`🎭 Ciclo Infinito ${cycleNumber} - Facendo rispondere ${personality.displayName}...`);
+          
+          // Ottieni i messaggi aggiornati prima di ogni risposta
+          await queryClient.invalidateQueries({
+            queryKey: ["/api/conversations", conversationId, "messages"]
+          });
+          
+          // Aspetta un momento per permettere l'aggiornamento
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const currentMessages = await messagesApi.getByConversation(conversationId);
+          
+          // Istruzioni dinamiche per modalità infinito
+          const cycleInstructions = `CICLO INFINITO ${cycleNumber} - EVOLUZIONE CONTINUA:
+COMPITI SPECIFICI:
+1. LEGGI attentamente TUTTE le risposte precedenti degli altri partecipanti
+2. SVILUPPA naturalmente il dialogo aggiungendo la TUA prospettiva unica
+3. APPROFONDISCI aspetti non ancora esplorati come ${personality.displayName}
+4. MANTIENI il dialogo vivo e interessante con nuovi spunti
+5. COSTRUISCI sul lavoro delle altre AI senza ripetere
+
+MODALITÀ INFINITO - REGOLE:
+- Questo è un dialogo che continuerà all'infinito
+- Sii creativo e propositivo nel tuo contributo
+- Ogni ciclo deve aggiungere valore e nuove prospettive
+- Mantieni la coerenza con il tuo ruolo di ${personality.displayName}`;
+          
+          const contextMessage = `Conversazione: ${conversation.title}
+
+${cycleInstructions}
+
+RUOLO SPECIFICO PER ${personality.displayName}:
+${getPersonalitySpecificInstructions(personality.nameId)}
+
+REGOLE FONDAMENTALI:
+- Rispondi ESCLUSIVAMENTE come ${personality.displayName}
+- Esprimi SOLO la tua prospettiva unica e autentica
+- NON parlare per altre AI o anticipare le loro risposte
+- Costruisci sul dialogo precedente con il TUO contributo distintivo`;
+          
+          await aiResponseMutation.mutateAsync({
+            personalityId: personality.nameId,
+            message: contextMessage,
+            conversationId: conversationId,
+            conversationHistory: currentMessages,
+          });
+          
+          // Aggiorna immediatamente la visualizzazione
+          await queryClient.invalidateQueries({
+            queryKey: ["/api/conversations", conversationId, "messages"]
+          });
+          
+          // Attendi prima della prossima risposta per evitare sovrapposizioni
+          if (sortedParticipants.indexOf(personality) < sortedParticipants.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        }
+        
+        // Pausa tra i cicli
+        console.log(`⏸️ Pausa tra ciclo ${cycleNumber} e ${cycleNumber + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        cycleNumber++;
+      }
+      
+    } catch (error) {
+      console.error("Errore durante il dialogo infinito:", error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante il dialogo infinito",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInfiniteMode(false);
+      setIsMultiCycleActive(false);
+      setCurrentCycle(0);
+      setTotalCycles(0);
+      setIsTyping(false);
+    }
+  };
+
+  // Ferma il dialogo infinito
+  const stopInfiniteCycle = () => {
+    setIsInfiniteMode(false);
+    setIsMultiCycleActive(false);
+    setCurrentCycle(0);
+    setTotalCycles(0);
+    setIsTyping(false);
+    
+    toast({
+      title: "Dialogo Infinito Fermato",
+      description: "Il dialogo infinito è stato fermato manualmente",
+    });
+  };
+
   // Fai rispondere tutti i partecipanti in ordine alfabetico (ciclo singolo)
   const handleAllParticipantsResponse = async () => {
     await handleMultiCycleDialogue(1);
@@ -467,36 +606,12 @@ REGOLE FONDAMENTALI:
   const startDialogue = () => {
     if (!conversation || dialogueMode === 'running') return;
 
-    setDialogueMode('running');
-    
-    const runDialogue = async () => {
-      try {
-        // Aspetta che la risposta AI sia completata prima di programmare la successiva
-        await handleAIResponse();
-        
-        // Aspetta un po' di più per essere sicuri che il messaggio sia salvato
-        setTimeout(() => {
-          if (dialogueMode === 'running') {
-            runDialogue();
-          }
-        }, dialogueDelay);
-      } catch (error) {
-        console.error('Errore durante il dialogo automatico:', error);
-        stopDialogue();
-        toast({
-          title: "Dialogo interrotto",
-          description: "Si è verificato un errore durante il dialogo automatico",
-          variant: "destructive",
-        });
-      }
-    };
-
-    // Inizia il primo ciclo
-    runDialogue();
+    // FIX PULSANTE AVVIA: Usa la logica migliore del Pantheon Completo
+    handleMultiCycleDialogue(999); // Infinito migliorato
     
     toast({
       title: "Dialogo Avviato",
-      description: "Le AI stanno ora conversando automaticamente",
+      description: "Le AI stanno ora conversando automaticamente con logica migliorata",
     });
   };
 
@@ -1115,18 +1230,21 @@ REGOLE FONDAMENTALI:
               Chiedi all'AI
             </Button>
             
-            {/* Dropdown per Pantheon Multi-Ciclo */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  disabled={isTyping || isMultiCycleActive}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2"
-                  title="Scegli quanti cicli di dialogo del Pantheon"
-                >
+            {/* Pantheon Multi-Ciclo con controlli */}
+            {!isMultiCycleActive ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    disabled={isTyping}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2"
+                    title="Scegli quanti cicli di dialogo del Pantheon"
+                  >
                   <Users className="h-4 w-4 mr-2" />
                   Pantheon Completo
                   {isMultiCycleActive && (
-                    <span className="ml-2 text-xs">({currentCycle}/{totalCycles})</span>
+                    <span className="ml-2 text-xs">
+                      {isInfiniteMode ? `(♾️ ${currentCycle})` : `(${currentCycle}/${totalCycles})`}
+                    </span>
                   )}
                 </Button>
               </DropdownMenuTrigger>
@@ -1143,8 +1261,42 @@ REGOLE FONDAMENTALI:
                 <DropdownMenuItem onClick={() => handleMultiCycleDialogue(7)}>
                   7 Cicli (Analisi Completa)
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMultiCycleDialogue(13)}>
+                  🚀 13 Cicli (Ultra Profondo)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInfiniteCycleDialogue()}>
+                  ♾️ Infinito (Controllo Manuale)
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            ) : (
+              // Controlli attivi durante l'esecuzione
+              <div className="flex items-center space-x-2">
+                <Button 
+                  disabled={isTyping}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2"
+                  title="Pannello di controllo attivo"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  {isInfiniteMode ? "♾️ Infinito" : "Pantheon"}
+                  <span className="ml-2 text-xs">
+                    {isInfiniteMode ? `(♾️ ${currentCycle})` : `(${currentCycle}/${totalCycles})`}
+                  </span>
+                </Button>
+                
+                {isInfiniteMode && (
+                  <Button 
+                    size="sm"
+                    onClick={stopInfiniteCycle}
+                    className="bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-2"
+                    title="Ferma il dialogo infinito"
+                  >
+                    <Square className="h-3 w-3 mr-1" />
+                    Stop ♾️
+                  </Button>
+                )}
+              </div>
+            )}
             
             {/* Quick Actions inline - AI attive */}
             {conversation?.participants && conversation.participants.filter(p => p.nameId !== "ricercatore" && p.nameId !== "andrea").map((personality) => (
