@@ -60,66 +60,47 @@ export class MemoryService {
     return this.saveMemory(memory);
   }
 
-  // Recupera ricordi rilevanti per una query
+  // Recupera ricordi rilevanti per una query (OTTIMIZZATO - NO unnest)
   async getRelevantMemories(
     personalityId: string,
     query: string,
     limit: number = 10
   ): Promise<SemanticMemory[]> {
-    const queryKeywords = this.extractKeywords(query);
-    
-    // Cerca per parole chiave sovrapposte con fallback se array vuoto
-    let memories;
-    if (queryKeywords.length === 0) {
-      memories = await db
-        .select()
-        .from(semanticMemory)
-        .where(eq(semanticMemory.personalityId, personalityId))
-        .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
-        .limit(limit);
-    } else {
-      memories = await db
-        .select()
-        .from(semanticMemory)
-        .where(
-          and(
-            eq(semanticMemory.personalityId, personalityId),
-            sql`EXISTS (SELECT 1 FROM unnest(keywords) AS k WHERE k = ANY(${queryKeywords}))`
-          )
+    // Usa semplice ricerca testuale invece di array complessi
+    return db
+      .select()
+      .from(semanticMemory)
+      .where(
+        and(
+          eq(semanticMemory.personalityId, personalityId),
+          ilike(semanticMemory.content, `%${query.substring(0, 50)}%`) // Primi 50 caratteri per performance
         )
-        .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
-        .limit(limit);
-    }
-
-    return memories;
+      )
+      .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
+      .limit(limit);
   }
 
-  // Recupera memoria collettiva (tutti i ricordi rilevanti di tutte le AI)
+  // Recupera memoria collettiva (OTTIMIZZATO - NO unnest)
   async getCollectiveMemories(
     query: string,
     limit: number = 15
   ): Promise<SemanticMemory[]> {
-    const queryKeywords = this.extractKeywords(query);
-    
-    let memories;
-    if (queryKeywords.length === 0) {
-      memories = await db
+    // Se query vuota, prendi i più importanti
+    if (!query.trim()) {
+      return db
         .select()
         .from(semanticMemory)
-        .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
-        .limit(limit);
-    } else {
-      memories = await db
-        .select()
-        .from(semanticMemory)
-        .where(
-          sql`EXISTS (SELECT 1 FROM unnest(keywords) AS k WHERE k = ANY(${queryKeywords}))`
-        )
         .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
         .limit(limit);
     }
-
-    return memories;
+    
+    // Altrimenti ricerca testuale semplice
+    return db
+      .select()
+      .from(semanticMemory)
+      .where(ilike(semanticMemory.content, `%${query.substring(0, 50)}%`))
+      .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
+      .limit(limit);
   }
 
   // Recupera gli ultimi ricordi di una personalità
