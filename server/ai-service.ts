@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { storage } from "./storage";
 import { memoryService } from "./memory-service";
 import type { Personality, Message } from "@shared/schema";
@@ -8,6 +9,8 @@ import type { Personality, Message } from "@shared/schema";
 const DEFAULT_OPENAI_MODEL = "gpt-4o";
 // The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229"
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+// Note that the newest Gemini model series is "gemini-2.0-flash-exp"
+const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash-exp";
 
 export async function generateAIResponse(
   personality: Personality,
@@ -76,6 +79,8 @@ export async function generateAIResponse(
       response = await generateMistralResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else if (targetProvider.type === "perplexity") {
       response = await generatePerplexityResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "gemini") {
+      response = await generateGeminiResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else {
       throw new Error(`Tipo di provider non supportato: ${targetProvider.type}`);
     }
@@ -485,5 +490,71 @@ async function generatePerplexityResponse(
   } catch (error) {
     console.error(`❌ Errore chiamata Perplexity per ${personality.displayName}:`, error);
     throw new Error(`Errore generazione risposta Perplexity: ${error.message}`);
+  }
+}
+
+async function generateGeminiResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  // This API key is from Gemini Developer API Key, not vertex AI API Key
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
+  const model = genAI.getGenerativeModel({ model: provider.defaultModel || DEFAULT_GEMINI_MODEL });
+
+  // Costruisci il system prompt completo
+  let systemPrompt = personality.systemPrompt;
+  
+  // Aggiungi memoria collettiva
+  if (memoryContext) {
+    systemPrompt += memoryContext;
+  }
+  
+  // Aggiungi istruzioni anti-confusione identitaria e per concisione
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI. NON usare etichette come [NomeAI] nelle tue risposte. Rispondi sempre e solo come te stesso.\n\n=== REGOLE DI COMUNICAZIONE ===\n- Risposte DIRETTE e CONCISE\n- NON ripetere concetti già assodati nella conversazione\n- Focus su nuovi insight o risposte specifiche alla domanda\n- Massimo 3-4 frasi per punto principale\n- Evita introduzioni ridondanti`;
+  
+  // Le istruzioni specifiche sono già incluse nel messaggio utente dal frontend
+  if (instructions) {
+    systemPrompt += `\n\n=== ISTRUZIONI SPECIFICHE PER QUESTA CONVERSAZIONE ===\n${instructions}\n\nSegui queste istruzioni insieme al tuo ruolo principale.`;
+  }
+  
+  if (attachmentsContext) {
+    systemPrompt += attachmentsContext;
+  }
+
+  // Costruisci il contesto della conversazione
+  let conversationContext = "";
+  if (conversationHistory.length > 0) {
+    conversationContext = "\n\n=== CRONOLOGIA CONVERSAZIONE ===\n";
+    conversationHistory.slice(-6).forEach((msg) => {
+      const sender = msg.senderId === personality.nameId ? "Tu" : (msg.senderId || "Utente");
+      conversationContext += `${sender}: ${msg.content}\n\n`;
+    });
+    conversationContext += "=== FINE CRONOLOGIA ===\n\n";
+  }
+
+  const fullPrompt = `${systemPrompt}${conversationContext}Nuovo messaggio: ${newMessage}`;
+
+  try {
+    const response = await model.generateContent({
+      contents: fullPrompt,
+    });
+
+    const aiResponse = response.response.text();
+    
+    if (!aiResponse) {
+      throw new Error("Risposta vuota dall'API Gemini");
+    }
+
+    console.log(`✅ Risposta Gemini generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
+    return aiResponse;
+    
+  } catch (error) {
+    console.error(`❌ Errore chiamata Gemini per ${personality.displayName}:`, error);
+    throw new Error(`Errore generazione risposta Gemini: ${(error as any).message}`);
   }
 }
