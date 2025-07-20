@@ -68,14 +68,14 @@ export class MemoryService {
   ): Promise<SemanticMemory[]> {
     const queryKeywords = this.extractKeywords(query);
     
-    // Cerca per parole chiave sovrapposte
+    // Cerca per parole chiave sovrapposte (fix PostgreSQL compatibility)
     const memories = await db
       .select()
       .from(semanticMemory)
       .where(
         and(
           eq(semanticMemory.personalityId, personalityId),
-          sql`array_length(array(select unnest(keywords) intersect select unnest(${queryKeywords})), 1) > 0`
+          sql`keywords && ${queryKeywords}`
         )
       )
       .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
@@ -95,7 +95,7 @@ export class MemoryService {
       .select()
       .from(semanticMemory)
       .where(
-        sql`array_length(array(select unnest(keywords) intersect select unnest(${queryKeywords})), 1) > 0`
+        sql`keywords && ${queryKeywords}`
       )
       .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
       .limit(limit);

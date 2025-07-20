@@ -264,21 +264,45 @@ async function generateAnthropicResponse(
 
   console.log(`🤖 Generando risposta Anthropic per ${personality.displayName}...`);
 
-  const response = await anthropic.messages.create({
-    model: provider.defaultModel || DEFAULT_ANTHROPIC_MODEL,
-    system: systemPrompt,
-    messages,
-    max_tokens: 1000,
-  });
+  try {
+    const response = await anthropic.messages.create({
+      model: provider.defaultModel || DEFAULT_ANTHROPIC_MODEL,
+      system: systemPrompt,
+      messages,
+      max_tokens: 1000,
+    });
 
-  if (!response.content?.[0] || response.content[0].type !== 'text') {
-    throw new Error("Risposta vuota dall'API Anthropic");
+    if (!response.content?.[0] || response.content[0].type !== 'text') {
+      throw new Error("Risposta vuota dall'API Anthropic");
+    }
+
+    const aiResponse = response.content[0].text;
+    console.log(`✅ Risposta Anthropic generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
+    
+    return aiResponse;
+  } catch (error: any) {
+    if (error.status === 529) {
+      console.log(`⚠️ Anthropic sovraccarico, retry tra 5 secondi...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      const retryResponse = await anthropic.messages.create({
+        model: provider.defaultModel || DEFAULT_ANTHROPIC_MODEL,
+        system: systemPrompt,
+        messages,
+        max_tokens: 1000,
+      });
+
+      if (!retryResponse.content?.[0] || retryResponse.content[0].type !== 'text') {
+        throw new Error("Risposta vuota dall'API Anthropic dopo retry");
+      }
+
+      const aiResponse = retryResponse.content[0].text;
+      console.log(`✅ Risposta Anthropic generata dopo retry per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
+      
+      return aiResponse;
+    }
+    throw error;
   }
-
-  const aiResponse = response.content[0].text;
-  console.log(`✅ Risposta Anthropic generata per ${personality.displayName}: ${aiResponse.substring(0, 100)}...`);
-  
-  return aiResponse;
 }
 
 async function generateMistralResponse(
