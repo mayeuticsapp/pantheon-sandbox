@@ -3,6 +3,23 @@ import { semanticMemory, type InsertSemanticMemory, type SemanticMemory } from "
 import { eq, desc, and, ilike, sql } from "drizzle-orm";
 
 export class MemoryService {
+  private isPaused = false; // Flag per mettere in pausa il servizio
+
+  // Metodi per controllare la pausa della memoria
+  pauseMemory() {
+    this.isPaused = true;
+    console.log('⏸️  MemoryService: Memoria collettiva MESSA IN PAUSA per esperimenti');
+  }
+
+  resumeMemory() {
+    this.isPaused = false;
+    console.log('▶️  MemoryService: Memoria collettiva RIATTIVATA');
+  }
+
+  isPausedMemory() {
+    return this.isPaused;
+  }
+
   // Salva un nuovo ricordo nella memoria collettiva
   async saveMemory(memory: InsertSemanticMemory): Promise<SemanticMemory> {
     const [savedMemory] = await db
@@ -19,6 +36,11 @@ export class MemoryService {
     content: string,
     importance: number = 5
   ): Promise<SemanticMemory> {
+    // Se la memoria è in pausa, non salvare nulla
+    if (this.isPaused) {
+      console.log('⏸️  MemoryService: Salvataggio saltato - memoria in pausa');
+      return {} as SemanticMemory; // Ritorna un oggetto vuoto invece di salvare
+    }
     // Estrai parole chiave automaticamente
     const keywords = this.extractKeywords(content);
     
@@ -121,6 +143,12 @@ export class MemoryService {
     personalityId: string,
     currentQuery: string
   ): Promise<string> {
+    // Se la memoria è in pausa, non fornire contesto
+    if (this.isPaused) {
+      console.log('⏸️  MemoryService: Contesto memoria saltato - memoria in pausa');
+      return ''; // Ritorna stringa vuota invece di ricordi
+    }
+    
     const relevantMemories = await this.getRelevantMemories(personalityId, currentQuery, 5);
     const collectiveMemories = await this.getCollectiveMemories(currentQuery, 3);
 
