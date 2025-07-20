@@ -540,11 +540,12 @@ async function generateGeminiResponse(
   const fullPrompt = `${systemPrompt}${conversationContext}Nuovo messaggio: ${newMessage}`;
 
   try {
-    const response = await model.generateContent({
-      contents: fullPrompt,
-    });
+    const response = await model.generateContent([
+      { role: 'user', parts: [{ text: fullPrompt }] }
+    ]);
 
-    const aiResponse = response.response.text();
+    const result = await response.response;
+    const aiResponse = result.text();
     
     if (!aiResponse) {
       throw new Error("Risposta vuota dall'API Gemini");
