@@ -37,6 +37,8 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 - ✅ **SISTEMA RESILIENTE** - Marco su Mistral AI, Luca su OpenAI GPT-4o - nessun conflitto quota
 - ✅ **BUG LUCA RISOLTO** - Corretto errore provider: Luca era su Gemini invece di OpenAI
 - ✅ **GEMINI API FUNZIONANTE** - Corretto formato richiesta generateContent, Luca ora su Gemini
+- ✅ **GEMINI SDK AGGIORNATO** - Migrato a @google/genai (nuovo SDK 2024) da SDK deprecato
+- ✅ **MODELLO GEMINI-2.0-FLASH-001** - Utilizzando modello più stabile per nuovo SDK
 
 ### 🚀 PANTHEON MULTI-CICLO EVOLUTO - IMPLEMENTAZIONE COMPLETATA ✅🎯
 - ✅ **CICLI MULTIPLI AGGIUNTI** - 13 cicli ultra-profondo + modalità infinito con controllo manuale

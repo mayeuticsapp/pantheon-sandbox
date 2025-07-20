@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from '@anthropic-ai/sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { storage } from "./storage";
 import { memoryService } from "./memory-service";
 import type { Personality, Message } from "@shared/schema";
@@ -9,8 +9,8 @@ import type { Personality, Message } from "@shared/schema";
 const DEFAULT_OPENAI_MODEL = "gpt-4o";
 // The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229"
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
-// Note that the newest Gemini model series is "gemini-2.0-flash-exp"
-const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash-exp";
+// Note that the newest Gemini model series is "gemini-2.0-flash-001" for the new SDK
+const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash-001";
 
 export async function generateAIResponse(
   personality: Personality,
@@ -502,9 +502,12 @@ async function generateGeminiResponse(
   attachmentsContext?: string,
   memoryContext?: string
 ): Promise<string> {
-  // This API key is from Gemini Developer API Key, not vertex AI API Key
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
-  const model = genAI.getGenerativeModel({ model: provider.defaultModel || DEFAULT_GEMINI_MODEL });
+  // Using the new @google/genai SDK (2024+ recommended)
+  const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || "" });
+  
+  // Use the correct model name from the provider
+  const modelName = provider.defaultModel || DEFAULT_GEMINI_MODEL;
+  console.log(`🔍 Using Gemini model: ${modelName}`);
 
   // Costruisci il system prompt completo
   let systemPrompt = personality.systemPrompt;
@@ -540,12 +543,13 @@ async function generateGeminiResponse(
   const fullPrompt = `${systemPrompt}${conversationContext}Nuovo messaggio: ${newMessage}`;
 
   try {
-    const response = await model.generateContent([
-      { role: 'user', parts: [{ text: fullPrompt }] }
-    ]);
-
-    const result = await response.response;
-    const aiResponse = result.text();
+    // New SDK format for generateContent
+    const response = await genAI.models.generateContent({
+      model: modelName,
+      contents: fullPrompt
+    });
+    
+    const aiResponse = response.text;
     
     if (!aiResponse) {
       throw new Error("Risposta vuota dall'API Gemini");
