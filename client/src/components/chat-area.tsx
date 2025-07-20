@@ -331,15 +331,6 @@ REGOLE FONDAMENTALI:
         description: "Errore durante il dialogo multi-ciclo del Pantheon",
         variant: "destructive",
       });
-      // Messaggio di completamento con indicatori di qualità
-      console.log(`🎉 PANTHEON MULTI-CICLO COMPLETATO`);
-      console.log(`📊 Statistiche: ${cycles} cicli x ${sortedParticipants.length} AI = ${cycles * sortedParticipants.length} risposte totali`);
-      console.log(`🎯 Qualità attesa: 9.5/10 con istruzioni specifiche per ciclo`);
-      
-      toast({
-        title: "🎉 Pantheon Evoluto Completato", 
-        description: `${cycles} cicli di dialogo strutturato con confronto reale e sintesi finale`,
-      });
     } finally {
       setIsTyping(false);
       setIsMultiCycleActive(false);
