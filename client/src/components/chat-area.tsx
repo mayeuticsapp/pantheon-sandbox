@@ -207,9 +207,9 @@ export default function ChatArea({ conversationId, personalities }: ChatAreaProp
     setIsTyping(true);
     
     try {
-      // Ordina i partecipanti alfabeticamente per nameId (escludi ricercatore)
+      // Ordina i partecipanti alfabeticamente per nameId (escludi ricercatore e andrea)
       const sortedParticipants = [...conversation.participants]
-        .filter(p => p.nameId !== "ricercatore")
+        .filter(p => p.nameId !== "ricercatore" && p.nameId !== "andrea")
         .sort((a, b) => a.nameId.localeCompare(b.nameId));
       
       // Esegui i cicli di dialogo
@@ -416,6 +416,23 @@ REGOLE FONDAMENTALI:
   const handleAIResponse = async (personalityNameId?: string) => {
     if (!conversationId || !conversation) return;
 
+    // CONTROLLO SPECIALE PER ANDREA - Verifica trigger esplicito
+    if (personalityNameId === 'andrea') {
+      const hasAndreaTrigger = newMessage.includes('@Andrea') || 
+                              newMessage.includes('@andrea') || 
+                              newMessage.includes('chiamo Andrea') || 
+                              newMessage.includes('chiamo andrea');
+      
+      if (!hasAndreaTrigger) {
+        toast({
+          title: "Andrea è un Osservatore Silente",
+          description: "Usa '@Andrea' nel messaggio per attivarlo",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Determine which AI should respond
     const targetPersonality = personalityNameId || getNextAI();
 
@@ -513,6 +530,10 @@ REGOLE FONDAMENTALI:
       case "c24": return "bg-purple-500";
       case "mistral": return "bg-orange-500";
       case "ricercatore": return "bg-green-500";
+      case "Marco": return "bg-indigo-500";
+      case "Elena": return "bg-pink-500";
+      case "Luca": return "bg-emerald-500";
+      case "andrea": return "bg-slate-500";
       default: return "bg-gray-500";
     }
   };
@@ -1125,8 +1146,8 @@ REGOLE FONDAMENTALI:
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Quick Actions inline - Solo per le 3 AI conversazionali */}
-            {conversation?.participants && conversation.participants.filter(p => p.nameId !== "ricercatore").map((personality) => (
+            {/* Quick Actions inline - AI attive */}
+            {conversation?.participants && conversation.participants.filter(p => p.nameId !== "ricercatore" && p.nameId !== "andrea").map((personality) => (
               <Button
                 key={personality.nameId}
                 variant="outline"
@@ -1140,15 +1161,38 @@ REGOLE FONDAMENTALI:
                     ? "border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
                     : personality.nameId === "mistral"
                     ? "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
+                    : personality.nameId === "Marco"
+                    ? "border-indigo-500 bg-indigo-500 text-white hover:bg-indigo-600"
+                    : personality.nameId === "Elena"
+                    ? "border-pink-500 bg-pink-500 text-white hover:bg-pink-600"
+                    : personality.nameId === "Luca"
+                    ? "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600"
                     : "border-gray-500 bg-gray-500 text-white hover:bg-gray-600"
                 }`}
               >
                 {personality.nameId === "geppo" ? "🏗️" : 
                  personality.nameId === "c24" ? "🎨" : 
-                 personality.nameId === "mistral" ? "🌟" : "🤖"} 
+                 personality.nameId === "mistral" ? "🌟" : 
+                 personality.nameId === "Marco" ? "🎭" :
+                 personality.nameId === "Elena" ? "💎" :
+                 personality.nameId === "Luca" ? "🌊" : "🤖"} 
                 {personality.displayName.split(" - ")[0]}
               </Button>
             ))}
+            
+            {/* Andrea - Pulsante speciale osservatore silente */}
+            {conversation?.participants && conversation.participants.find(p => p.nameId === "andrea") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleAIResponse("andrea")}
+                disabled={isTyping}
+                className="text-xs font-semibold px-3 py-2 border-slate-500 bg-slate-500 text-white hover:bg-slate-600"
+                title="Andrea è un osservatore silente. Usa '@Andrea' nel messaggio per attivarlo."
+              >
+                👁️ @Andrea
+              </Button>
+            )}
           </div>
 
           {/* Dialogue Settings Dialog */}

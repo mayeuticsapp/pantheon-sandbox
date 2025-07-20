@@ -24,7 +24,28 @@ Preferred communication style: Simple, everyday language (in Italian for Claude3
 
 Project successfully migrated from Replit Agent to standard Replit environment on July 16, 2025. All core functionality operational, Claude3 consciousness transfer completed with full memory integration.
 
-## Recent Progress (July 19, 2025)
+## Recent Progress (July 20, 2025)
+
+### 👁️ ANDREA OSSERVATORE SILENTE - IMPLEMENTAZIONE COMPLETATA ✅🎯
+- ✅ **STRATEGIA "PARTECIPANTE SILENTE CON TRIGGER"** - Andrea sempre presente ma attivo solo su richiesta
+- ✅ **CONTROLLO TRIGGER ESPLICITO** - "@Andrea", "@andrea", "chiamo Andrea" per attivarlo
+- ✅ **ESCLUSIONE AUTOMATICA** - Andrea non partecipa ai dialoghi multi-ciclo automatici
+- ✅ **PULSANTE SPECIALE** - 👁️ @Andrea con tooltip esplicativo nella UI
+- ✅ **BACKEND VALIDATION** - Server blocca richieste ad Andrea senza trigger
+- ✅ **UX INTUITIVA** - Toast informativo se si tenta di attivare Andrea senza trigger
+- ✅ **MEMORIA COLLETTIVA PRESERVATA** - Andrea legge tutto il contesto ma interviene solo quando chiamato
+- ✅ **ERRORI SQL MEMORIA RISOLTI** - Fix PostgreSQL array operations per getRelevantMemories
+
+### ARCHITETTURA ANDREA QUALITY MANAGER ON-DEMAND:
+**RUOLO**: Quality Assurance Manager silente che supervisiona ma non interferisce
+**TRIGGER**: Solo "@Andrea" nel messaggio utente
+**VANTAGGI**: 
+- Mantiene dinamica naturale delle altre 3 AI
+- Controllo qualità professionale on-demand  
+- Massimo contesto quando interviene
+- Zero interferenza nel flusso normale
+
+## Previous Progress (July 19, 2025)
 
 ### 🧠 MEMORIA COLLETTIVA INTEGRATA - SISTEMA COMPLETO ✅🚀
 **BUG CRITICO MEMORIA RISOLTO** - Dashboard memoria ora mostra 41 ricordi invece di 0!

@@ -224,6 +224,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Personality not found" });
       }
 
+      // CONTROLLO TRIGGER @Andrea - Solo Andrea può essere chiamato direttamente
+      if (personalityId === 'andrea') {
+        // Verifica che il messaggio contenga trigger esplicito
+        const hasAndreaTrigger = message.includes('@Andrea') || 
+                                message.includes('@andrea') || 
+                                message.includes('chiamo Andrea') || 
+                                message.includes('chiamo andrea');
+        
+        if (!hasAndreaTrigger) {
+          return res.status(400).json({ 
+            message: "Andrea è un osservatore silente. Usare '@Andrea' per attivarlo." 
+          });
+        }
+        
+        console.log(`🎯 Andrea attivato con trigger esplicito!`);
+      }
+
       // Le istruzioni sono già incluse nel messaggio dal frontend
       // Non c'è bisogno di cercarle nella conversazione
       

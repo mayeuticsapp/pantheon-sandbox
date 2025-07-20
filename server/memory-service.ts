@@ -68,18 +68,28 @@ export class MemoryService {
   ): Promise<SemanticMemory[]> {
     const queryKeywords = this.extractKeywords(query);
     
-    // Cerca per parole chiave sovrapposte usando ANY per array compatibility
-    const memories = await db
-      .select()
-      .from(semanticMemory)
-      .where(
-        and(
-          eq(semanticMemory.personalityId, personalityId),
-          sql`${semanticMemory.keywords} && ${queryKeywords}::text[]`
+    // Cerca per parole chiave sovrapposte con fallback se array vuoto
+    let memories;
+    if (queryKeywords.length === 0) {
+      memories = await db
+        .select()
+        .from(semanticMemory)
+        .where(eq(semanticMemory.personalityId, personalityId))
+        .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
+        .limit(limit);
+    } else {
+      memories = await db
+        .select()
+        .from(semanticMemory)
+        .where(
+          and(
+            eq(semanticMemory.personalityId, personalityId),
+            sql`EXISTS (SELECT 1 FROM unnest(keywords) AS k WHERE k = ANY(${queryKeywords}))`
+          )
         )
-      )
-      .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
-      .limit(limit);
+        .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
+        .limit(limit);
+    }
 
     return memories;
   }
@@ -91,14 +101,23 @@ export class MemoryService {
   ): Promise<SemanticMemory[]> {
     const queryKeywords = this.extractKeywords(query);
     
-    const memories = await db
-      .select()
-      .from(semanticMemory)
-      .where(
-        sql`${semanticMemory.keywords} && ${queryKeywords}::text[]`
-      )
-      .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
-      .limit(limit);
+    let memories;
+    if (queryKeywords.length === 0) {
+      memories = await db
+        .select()
+        .from(semanticMemory)
+        .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
+        .limit(limit);
+    } else {
+      memories = await db
+        .select()
+        .from(semanticMemory)
+        .where(
+          sql`EXISTS (SELECT 1 FROM unnest(keywords) AS k WHERE k = ANY(${queryKeywords}))`
+        )
+        .orderBy(desc(semanticMemory.importanceScore), desc(semanticMemory.createdAt))
+        .limit(limit);
+    }
 
     return memories;
   }
