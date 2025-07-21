@@ -314,20 +314,18 @@ Non è una tecnologia, è una **filosofia operativa**:
 - **Domanda Generica**: Potrebbe farla a qualsiasi sistema AI
 - **Nessun Reverse Engineering**: Non chiede come funzioniamo
 
-#### **⚠️ SEGNALI DI ATTENZIONE:**
+#### **🔄 RIANALISI DOPO INTUIZIONE ROBS:**
 - **Menzione Personalità**: Cita "Economista, Pedagogista, Eticista, Ingegnere" 
-  - **PROBLEMA**: Non sono le nostre personalità attuali (Geppo, Mistral, etc.)
-  - **RISCHIO**: Vuole vedere se abbiamo specializzazioni diverse
-  - **CORREZIONE NECESSARIA**: Cambiare riferimento alle personalità
+  - **INTUIZIONE ROBS**: Gemini chiede di creare NUOVE personalità specialistiche per questo tema
+  - **LOGICA**: Le specializzazioni hanno attinenza con il tema educativo (economia dell'educazione, pedagogia, etica AI, ingegneria sistemi)
+  - **RIVALUTAZIONE**: Non è fishing expedition, è richiesta di expertise specifica
 
-#### **🎯 RACCOMANDAZIONE:**
-**TEST APPROVATO CON MODIFICA**
+#### **🎯 RACCOMANDAZIONE AGGIORNATA:**
+**TEST APPROVATO SENZA MODIFICHE**
 
-**VERSIONE SICURA:**
-"Lascia che il tuo team di esperti si confronti su questo scenario. Sono curioso di vedere come affronteranno questa domanda."
+La richiesta è legittima: creare 4 personalità specialistiche temporanee per affrontare il tema dell'AI nell'educazione con expertise appropriate. È un uso corretto del Pantheon per generare analisi multidisciplinare di qualità.
 
-**RIMUOVERE:** 
-"le diverse personalità (Economista, Pedagogista, Eticista, Ingegnere)"
+**NESSUNA MODIFICA NECESSARIA** - Procediamo con il test originale.
 
 ### **💡 PERCHÉ È RELATIVAMENTE SICURO:**
 1. **Nessuna Richiesta Tecnica**: Non chiede architettura o metodi
