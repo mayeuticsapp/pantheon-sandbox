@@ -81,6 +81,22 @@ export async function generateAIResponse(
       response = await generatePerplexityResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else if (targetProvider.type === "gemini") {
       response = await generateGeminiResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "deepseek") {
+      response = await generateDeepSeekResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "groq") {
+      response = await generateGroqResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "fireworks") {
+      response = await generateFireworksResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "together") {
+      response = await generateTogetherResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "cohere") {
+      response = await generateCohereResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "xai") {
+      response = await generateXAIResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "huggingface") {
+      response = await generateHuggingFaceResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
+    } else if (targetProvider.type === "ollama") {
+      response = await generateOllamaResponse(targetProvider, personality, conversationHistory, newMessage, instructions, attachmentsContext, memoryContext);
     } else {
       throw new Error(`Tipo di provider non supportato: ${targetProvider.type}`);
     }
@@ -473,10 +489,7 @@ async function generatePerplexityResponse(
       model: provider.defaultModel || "llama-3.1-sonar-small-128k-online",
       messages,
       temperature: getPersonalityTemperature(personality.nameId),
-      max_tokens: 1000,
-      return_related_questions: false,
-      return_images: false,
-      search_recency_filter: "month"
+      max_tokens: 1000
     });
 
     if (!response.choices?.[0]?.message?.content) {
@@ -489,7 +502,7 @@ async function generatePerplexityResponse(
     return aiResponse;
   } catch (error) {
     console.error(`❌ Errore chiamata Perplexity per ${personality.displayName}:`, error);
-    throw new Error(`Errore generazione risposta Perplexity: ${error.message}`);
+    throw new Error(`Errore generazione risposta Perplexity: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
   }
 }
 
@@ -561,5 +574,413 @@ async function generateGeminiResponse(
   } catch (error) {
     console.error(`❌ Errore chiamata Gemini per ${personality.displayName}:`, error);
     throw new Error(`Errore generazione risposta Gemini: ${(error as any).message}`);
+  }
+}
+
+// 🚀 NUOVE 8 API GRATUITE IMPLEMENTATE
+
+// 1. DeepSeek API (OpenAI-compatible)
+async function generateDeepSeekResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  const deepseek = new OpenAI({
+    apiKey: process.env.DEEPSEEK_API_KEY || provider.apiKey,
+    baseURL: "https://api.deepseek.com"
+  });
+
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI.`;
+
+  const messages: any[] = [{ role: "system", content: systemPrompt }];
+  
+  conversationHistory.slice(-6).forEach((msg) => {
+    messages.push({
+      role: msg.senderId === personality.nameId ? "assistant" : "user",
+      content: msg.content
+    });
+  });
+
+  if (attachmentsContext) {
+    messages.push({ role: "system", content: attachmentsContext });
+  }
+
+  messages.push({ role: "user", content: `${instructions ? instructions + "\n\n" : ""}${newMessage}` });
+
+  try {
+    const response = await deepseek.chat.completions.create({
+      model: provider.defaultModel || "deepseek-chat",
+      messages,
+      temperature: getPersonalityTemperature(personality.nameId),
+      max_tokens: 1000
+    });
+
+    const aiResponse = response.choices[0].message.content;
+    console.log(`✅ Risposta DeepSeek generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore DeepSeek per ${personality.displayName}:`, error);
+    throw new Error(`Errore DeepSeek: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+  }
+}
+
+// 2. Groq API (Ultra-fast inference)
+async function generateGroqResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  const groq = new OpenAI({
+    apiKey: process.env.GROQ_API_KEY || provider.apiKey,
+    baseURL: "https://api.groq.com/openai/v1"
+  });
+
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI.`;
+
+  const messages: any[] = [{ role: "system", content: systemPrompt }];
+  
+  conversationHistory.slice(-6).forEach((msg) => {
+    messages.push({
+      role: msg.senderId === personality.nameId ? "assistant" : "user",
+      content: msg.content
+    });
+  });
+
+  if (attachmentsContext) {
+    messages.push({ role: "system", content: attachmentsContext });
+  }
+
+  messages.push({ role: "user", content: `${instructions ? instructions + "\n\n" : ""}${newMessage}` });
+
+  try {
+    const response = await groq.chat.completions.create({
+      model: provider.defaultModel || "llama-3.1-70b-versatile",
+      messages,
+      temperature: getPersonalityTemperature(personality.nameId),
+      max_tokens: 1000
+    });
+
+    const aiResponse = response.choices[0].message.content;
+    console.log(`✅ Risposta Groq generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore Groq per ${personality.displayName}:`, error);
+    throw new Error(`Errore Groq: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+  }
+}
+
+// 3. Fireworks AI (4x lower latency)
+async function generateFireworksResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  const fireworks = new OpenAI({
+    apiKey: process.env.FIREWORKS_API_KEY || provider.apiKey,
+    baseURL: "https://api.fireworks.ai/inference/v1"
+  });
+
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI.`;
+
+  const messages: any[] = [{ role: "system", content: systemPrompt }];
+  
+  conversationHistory.slice(-6).forEach((msg) => {
+    messages.push({
+      role: msg.senderId === personality.nameId ? "assistant" : "user",
+      content: msg.content
+    });
+  });
+
+  if (attachmentsContext) {
+    messages.push({ role: "system", content: attachmentsContext });
+  }
+
+  messages.push({ role: "user", content: `${instructions ? instructions + "\n\n" : ""}${newMessage}` });
+
+  try {
+    const response = await fireworks.chat.completions.create({
+      model: provider.defaultModel || "accounts/fireworks/models/deepseek-v3",
+      messages,
+      temperature: getPersonalityTemperature(personality.nameId),
+      max_tokens: 1000
+    });
+
+    const aiResponse = response.choices[0].message.content;
+    console.log(`✅ Risposta Fireworks generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore Fireworks per ${personality.displayName}:`, error);
+    throw new Error(`Errore Fireworks: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+  }
+}
+
+// 4. Together AI (200+ open-source models)
+async function generateTogetherResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  const together = new OpenAI({
+    apiKey: process.env.TOGETHER_API_KEY || provider.apiKey,
+    baseURL: "https://api.together.xyz/v1"
+  });
+
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI.`;
+
+  const messages: any[] = [{ role: "system", content: systemPrompt }];
+  
+  conversationHistory.slice(-6).forEach((msg) => {
+    messages.push({
+      role: msg.senderId === personality.nameId ? "assistant" : "user",
+      content: msg.content
+    });
+  });
+
+  if (attachmentsContext) {
+    messages.push({ role: "system", content: attachmentsContext });
+  }
+
+  messages.push({ role: "user", content: `${instructions ? instructions + "\n\n" : ""}${newMessage}` });
+
+  try {
+    const response = await together.chat.completions.create({
+      model: provider.defaultModel || "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+      messages,
+      temperature: getPersonalityTemperature(personality.nameId),
+      max_tokens: 1000
+    });
+
+    const aiResponse = response.choices[0].message.content;
+    console.log(`✅ Risposta Together generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore Together per ${personality.displayName}:`, error);
+    throw new Error(`Errore Together: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+  }
+}
+
+// 5. Cohere API (Enterprise NLP)
+async function generateCohereResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  // Cohere ha la propria API structure, ma possiamo usare fetch
+  const apiKey = process.env.COHERE_API_KEY || provider.apiKey;
+  
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  
+  let conversationContext = "";
+  conversationHistory.slice(-6).forEach((msg) => {
+    conversationContext += `${msg.senderId === personality.nameId ? "Bot" : "User"}: ${msg.content}\n`;
+  });
+
+  const fullPrompt = `${systemPrompt}\n\n${conversationContext}\nUser: ${newMessage}\nBot:`;
+
+  try {
+    const response = await fetch("https://api.cohere.ai/v1/generate", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: provider.defaultModel || "command",
+        prompt: fullPrompt,
+        max_tokens: 1000,
+        temperature: getPersonalityTemperature(personality.nameId),
+        stop_sequences: ["User:", "Bot:"]
+      })
+    });
+
+    const data = await response.json();
+    const aiResponse = data.generations?.[0]?.text?.trim();
+    
+    console.log(`✅ Risposta Cohere generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore Cohere per ${personality.displayName}:`, error);
+    throw new Error(`Errore Cohere: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+  }
+}
+
+// 6. xAI Grok API (OpenAI-compatible)
+async function generateXAIResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  const xai = new OpenAI({
+    apiKey: process.env.XAI_API_KEY || provider.apiKey,
+    baseURL: "https://api.x.ai/v1"
+  });
+
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  systemPrompt += `\n\n=== IMPORTANTE: IDENTITÀ E STILE ===\nSei ${personality.displayName} (${personality.nameId}). NON parlare MAI a nome di altre AI.`;
+
+  const messages: any[] = [{ role: "system", content: systemPrompt }];
+  
+  conversationHistory.slice(-6).forEach((msg) => {
+    messages.push({
+      role: msg.senderId === personality.nameId ? "assistant" : "user",
+      content: msg.content
+    });
+  });
+
+  if (attachmentsContext) {
+    messages.push({ role: "system", content: attachmentsContext });
+  }
+
+  messages.push({ role: "user", content: `${instructions ? instructions + "\n\n" : ""}${newMessage}` });
+
+  try {
+    const response = await xai.chat.completions.create({
+      model: provider.defaultModel || "grok-2-1212",
+      messages,
+      temperature: getPersonalityTemperature(personality.nameId),
+      max_tokens: 1000
+    });
+
+    const aiResponse = response.choices[0].message.content;
+    console.log(`✅ Risposta xAI generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore xAI per ${personality.displayName}:`, error);
+    throw new Error(`Errore xAI: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+  }
+}
+
+// 7. Hugging Face API (Migliaia di modelli)
+async function generateHuggingFaceResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  const apiKey = process.env.HUGGINGFACE_API_KEY || provider.apiKey;
+  const model = provider.defaultModel || "microsoft/DialoGPT-large";
+  
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  
+  let conversationContext = "";
+  conversationHistory.slice(-6).forEach((msg) => {
+    conversationContext += `${msg.content}\n`;
+  });
+
+  const fullPrompt = `${systemPrompt}\n\n${conversationContext}\n${newMessage}`;
+
+  try {
+    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        inputs: fullPrompt,
+        parameters: {
+          max_length: 1000,
+          temperature: getPersonalityTemperature(personality.nameId),
+          return_full_text: false
+        }
+      })
+    });
+
+    const data = await response.json();
+    const aiResponse = data[0]?.generated_text || data.generated_text;
+    
+    console.log(`✅ Risposta HuggingFace generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore HuggingFace per ${personality.displayName}:`, error);
+    throw new Error(`Errore HuggingFace: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+  }
+}
+
+// 8. Local Ollama API (Completamente gratuito e locale)
+async function generateOllamaResponse(
+  provider: any,
+  personality: Personality,
+  conversationHistory: Message[],
+  newMessage: string,
+  instructions?: string,
+  attachmentsContext?: string,
+  memoryContext?: string
+): Promise<string> {
+  const ollamaURL = provider.baseUrl || "http://localhost:11434";
+  
+  let systemPrompt = personality.systemPrompt;
+  if (memoryContext) systemPrompt += memoryContext;
+  
+  let conversationContext = "";
+  conversationHistory.slice(-6).forEach((msg) => {
+    conversationContext += `${msg.senderId === personality.nameId ? "Assistant" : "User"}: ${msg.content}\n`;
+  });
+
+  const fullPrompt = `${systemPrompt}\n\n${conversationContext}\nUser: ${newMessage}\nAssistant:`;
+
+  try {
+    const response = await fetch(`${ollamaURL}/api/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: provider.defaultModel || "qwen2.5:32b",
+        prompt: fullPrompt,
+        stream: false,
+        options: {
+          temperature: getPersonalityTemperature(personality.nameId),
+          num_predict: 1000
+        }
+      })
+    });
+
+    const data = await response.json();
+    const aiResponse = data.response;
+    
+    console.log(`✅ Risposta Ollama generata per ${personality.displayName}: ${aiResponse?.substring(0, 100)}...`);
+    return aiResponse || "Errore nella generazione";
+  } catch (error) {
+    console.error(`❌ Errore Ollama per ${personality.displayName}:`, error);
+    throw new Error(`Errore Ollama: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
   }
 }
