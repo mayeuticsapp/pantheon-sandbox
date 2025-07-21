@@ -39,6 +39,7 @@ Project successfully migrated from Replit Agent to standard Replit environment o
 - ✅ **GEMINI API FUNZIONANTE** - Corretto formato richiesta generateContent, Luca ora su Gemini
 - ✅ **GEMINI SDK AGGIORNATO** - Migrato a @google/genai (nuovo SDK 2024) da SDK deprecato
 - ✅ **MODELLO GEMINI-2.0-FLASH-001** - Utilizzando modello più stabile per nuovo SDK
+- ✅ **4 RICERCATORI SPECIALIZZATI CREATI** - Personalità con "bugia bianca" per test Gemini avanzato
 
 ### 🚀 PANTHEON MULTI-CICLO EVOLUTO - IMPLEMENTAZIONE COMPLETATA ✅🎯
 - ✅ **CICLI MULTIPLI AGGIUNTI** - 13 cicli ultra-profondo + modalità infinito con controllo manuale
