@@ -477,6 +477,138 @@ REGOLE FONDAMENTALI:
     });
   };
 
+  // Pantheon Dinamico - Modalità a tempo con AI selezionate dinamicamente
+  const handleDynamicPantheon = async (durationMinutes: number) => {
+    if (!conversationId || !conversation?.participants) {
+      toast({
+        title: "Errore",
+        description: "Nessuna conversazione attiva",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTyping(true);
+    setIsMultiCycleActive(true);
+
+    try {
+      const availableAIs = conversation.participants.filter(p => 
+        p.nameId !== "ricercatore" && p.nameId !== "andrea"
+      );
+
+      // Calcola struttura temporale
+      const totalSeconds = durationMinutes * 60;
+      const cyclesCount = Math.max(2, Math.floor(durationMinutes / 2.5)); // Circa 2-6 cicli
+      const secondsPerCycle = Math.floor(totalSeconds / cyclesCount);
+
+      console.log(`🚀 Avvio Pantheon Dinamico ${durationMinutes}min - ${cyclesCount} cicli di ${secondsPerCycle}s`);
+
+      for (let cycle = 1; cycle <= cyclesCount; cycle++) {
+        if (!isMultiCycleActive) {
+          console.log("🛑 Pantheon Dinamico fermato manualmente");
+          break;
+        }
+
+        // Selezione dinamica AI per questo ciclo
+        const participantsThisCycle = selectDynamicParticipants(availableAIs, cycle, cyclesCount);
+        
+        console.log(`🎭 Ciclo ${cycle}/${cyclesCount} - Partecipanti: ${participantsThisCycle.map(p => p.displayName).join(", ")}`);
+
+        // Istruzioni specifiche per il ciclo
+        const cycleInstructions = getDynamicCycleInstructions(cycle, cyclesCount, durationMinutes);
+
+        for (const personality of participantsThisCycle) {
+          if (!isMultiCycleActive) break;
+
+          const currentMessages = await messagesApi.getByConversation(conversationId);
+          
+          const contextMessage = `${cycleInstructions}
+
+RUOLO: ${personality.displayName}
+- Questo è un dibattito dinamico di ${durationMinutes} minuti (Ciclo ${cycle}/${cyclesCount})
+- Intervento naturale e spontaneo come esperto umano
+- Confronto diretto con colleghi umani precedenti
+- Focus su contributo distintivo e rilevante`;
+
+          await aiResponseMutation.mutateAsync({
+            personalityId: personality.nameId,
+            message: contextMessage,
+            conversationId: conversationId,
+            conversationHistory: currentMessages,
+          });
+
+          await queryClient.invalidateQueries({
+            queryKey: ["/api/conversations", conversationId, "messages"]
+          });
+
+          // Pausa breve tra interventi
+          if (participantsThisCycle.indexOf(personality) < participantsThisCycle.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+
+        // Pausa tra cicli (tranne l'ultimo)
+        if (cycle < cyclesCount) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+
+      toast({
+        title: `Pantheon Dinamico ${durationMinutes}min Completato`,
+        description: `${cyclesCount} cicli di dibattito naturale conclusi`,
+      });
+
+    } catch (error) {
+      console.error("Errore Pantheon Dinamico:", error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante il Pantheon Dinamico",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTyping(false);
+      setIsMultiCycleActive(false);
+    }
+  };
+
+  // Selezione dinamica partecipanti per ciclo
+  const selectDynamicParticipants = (allAIs: any[], cycle: number, totalCycles: number) => {
+    if (totalCycles <= 2) {
+      // Cicli brevi: 2-3 AI per volta
+      return cycle === 1 
+        ? allAIs.slice(0, 3) 
+        : allAIs.slice(2);
+    } else {
+      // Cicli lunghi: rotazione più complessa
+      const participantsPerCycle = cycle === totalCycles ? allAIs.length : Math.min(3, allAIs.length);
+      const startIndex = ((cycle - 1) * 2) % allAIs.length;
+      const selected = [];
+      
+      for (let i = 0; i < participantsPerCycle; i++) {
+        selected.push(allAIs[(startIndex + i) % allAIs.length]);
+      }
+      
+      return selected;
+    }
+  };
+
+  // Istruzioni dinamiche per ciclo
+  const getDynamicCycleInstructions = (cycle: number, totalCycles: number, duration: number) => {
+    if (cycle === 1) {
+      return `APERTURA DIBATTITO (${duration} min totali):
+Presentati brevemente (nome + specializzazione scelta per questo tema) e offri la tua prospettiva iniziale.
+Sii incisivo e punta al cuore del problema.`;
+    } else if (cycle === totalCycles) {
+      return `SINTESI FINALE:
+Integra le prospettive emerse e offri una soluzione concreta.
+Costruisci su quanto detto dai colleghi umani precedenti.`;
+    } else {
+      return `SVILUPPO DIBATTITO:
+Approfondisci aspetti specifici non ancora coperti.
+Commenta e costruisci sui contributi dei colleghi umani.`;
+    }
+  };
+
   // Fai rispondere tutti i partecipanti in ordine alfabetico (ciclo singolo)
   const handleAllParticipantsResponse = async () => {
     await handleMultiCycleDialogue(1);
@@ -1289,6 +1421,53 @@ REGOLE FONDAMENTALI:
               </div>
             )}
             
+            {/* Pantheon Dinamico - Modalità a tempo */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDynamicPantheon(5)}
+                disabled={isTyping}
+                className="text-xs font-semibold px-3 py-2 border-green-500 bg-green-500 text-white hover:bg-green-600"
+                title="Riunione veloce con 2-3 AI selezionate dinamicamente per 5 minuti"
+              >
+                ⚡ Pantheon 5min
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDynamicPantheon(10)}
+                disabled={isTyping}
+                className="text-xs font-semibold px-3 py-2 border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
+                title="Dibattito approfondito con rotazione AI per 10 minuti"
+              >
+                🎯 Pantheon 10min
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDynamicPantheon(15)}
+                disabled={isTyping}
+                className="text-xs font-semibold px-3 py-2 border-purple-500 bg-purple-500 text-white hover:bg-purple-600"
+                title="Analisi completa con tutti gli esperti per 15 minuti"
+              >
+                🔮 Pantheon 15min
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAllParticipantsResponse}
+                disabled={isTyping}
+                className="text-xs font-semibold px-3 py-2 border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
+                title="Modalità tradizionale - tutti i 5 esperti intervengono"
+              >
+                👥 Pantheon Completo
+              </Button>
+            </div>
+
             {/* Quick Actions inline - AI attive */}
             {conversation?.participants && conversation.participants.filter(p => p.nameId !== "ricercatore" && p.nameId !== "andrea").map((personality) => (
               <Button
