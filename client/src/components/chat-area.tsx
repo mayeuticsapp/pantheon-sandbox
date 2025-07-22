@@ -303,7 +303,6 @@ REGOLE FONDAMENTALI:
           await aiResponseMutation.mutateAsync({
             personalityId: personality.nameId,
             message: contextMessage,
-            conversationId: conversationId,
             conversationHistory: currentMessages,
           });
           
@@ -425,7 +424,6 @@ REGOLE FONDAMENTALI:
           await aiResponseMutation.mutateAsync({
             personalityId: personality.nameId,
             message: contextMessage,
-            conversationId: conversationId,
             conversationHistory: currentMessages,
           });
           
@@ -533,7 +531,6 @@ RUOLO: ${personality.displayName}
           await aiResponseMutation.mutateAsync({
             personalityId: personality.nameId,
             message: contextMessage,
-            conversationId: conversationId,
             conversationHistory: currentMessages,
           });
 
@@ -654,7 +651,6 @@ Commenta e costruisci sui contributi dei colleghi umani.`;
       await aiResponseMutation.mutateAsync({
         personalityId: oracle.nameId,
         message: "ORACOLO_QUERY", // Segnale per il backend
-        conversationId: conversationId,
         conversationHistory: [], // Vuoto - il backend estrarrà l'ultima domanda
       });
       
@@ -709,7 +705,6 @@ Commenta e costruisci sui contributi dei colleghi umani.`;
       await aiResponseMutation.mutateAsync({
         personalityId: targetPersonality,
         message: contextMessage,
-        conversationId: conversationId,
         conversationHistory: messages,
       });
     } catch (error) {
@@ -817,7 +812,7 @@ Commenta e costruisci sui contributi dei colleghi umani.`;
     const selectedIds = Array.from(selectedMessages);
     const messagesToCopy = messages
       .filter(m => selectedIds.includes(m.id))
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
 
     let copyText = "";
     if (conversation) {
@@ -827,8 +822,8 @@ Commenta e costruisci sui contributi dei colleghi umani.`;
     messagesToCopy.forEach((message, index) => {
       const sender = message.senderId === "user" 
         ? "robS" 
-        : getPersonalityName(message.senderId);
-      const time = formatTime(new Date(message.createdAt));
+        : getPersonalityName(message.senderId || "");
+      const time = formatTime(new Date(message.createdAt || 0));
       
       copyText += `[${time}] ${sender}:\n${message.content}\n\n`;
     });
@@ -1090,7 +1085,7 @@ Commenta e costruisci sui contributi dei colleghi umani.`;
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <h4 className="text-sm font-medium text-blue-800 mb-2">📎 File condivisi nel Pantheon</h4>
               <div className="space-y-1">
-                {attachments.map((attachment) => (
+                {attachments.map((attachment: any) => (
                   <div key={attachment.id} className="flex items-center text-sm text-blue-700">
                     <span className="mr-2">
                       {attachment.mimeType.startsWith("text/") ? "📄" : 
